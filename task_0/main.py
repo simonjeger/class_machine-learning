@@ -3,7 +3,7 @@ from sklearn.metrics import mean_squared_error
 import pandas as pd
 
 #The file value is either "train.csv" or "test.csv"
-file = 'train.csv'
+file = 'test.csv'
 
 #read data from csv file and transfer to numpy array
 read_train = pd.read_csv('../data_0/' + file, delimiter=',')  # read in train.csv file
