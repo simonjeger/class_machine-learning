@@ -48,11 +48,11 @@ for alpha in [0.01, 0.1, 1, 10, 100]:
         y_red = y
         X_val = []
         y_val = []
-        for id in batches[i]:
-            del(X_red[id])
-            del(y_red[id])
+        for id in batches[i][::-1]:
             X_val.append(X[id])
             y_val.append(y[id])
+            del(X_red[id])
+            del(y_red[id])
         w = ridge_regression(X_red, y_red, alpha)
         y_pred = np.dot(np.transpose(w), np.transpose(X_val))
         rmse = np.sqrt(mean_squared_error(y_val, y_pred))
