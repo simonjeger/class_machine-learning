@@ -42,10 +42,13 @@ def ridge_regression(X, y, alpha):
 number_of_batches = 10
 batches = make_batches(Id,number_of_batches)
 
+file = open("alpha.csv", "w")
+
 for alpha in [0.01, 0.1, 1, 10, 100]:
+    rmse = []
     for i in range(number_of_batches):
-        X_red = X
-        y_red = y
+        X_red = X[:]
+        y_red = y[:]
         X_val = []
         y_val = []
         for id in batches[i][::-1]:
@@ -55,4 +58,9 @@ for alpha in [0.01, 0.1, 1, 10, 100]:
             del(y_red[id])
         w = ridge_regression(X_red, y_red, alpha)
         y_pred = np.dot(np.transpose(w), np.transpose(X_val))
-        rmse = np.sqrt(mean_squared_error(y_val, y_pred))
+        rmse.append(np.sqrt(mean_squared_error(y_val, y_pred)))
+    rmse_mean = np.sum(rmse) / len(rmse)
+
+    file.write(str(rmse_mean))
+    file.write('\n')
+file.close()
