@@ -3,64 +3,62 @@ from sklearn.metrics import mean_squared_error
 from sklearn.linear_model import Ridge
 import pandas as pd
 
+#READ DATA FROM CSV FILE AND TRANSFER TO NUMPY ARRAY
 def read_in_data(file):
 
-    #read data from csv file and transfer to numpy array
-    read_train = pd.read_csv('../../data_1/data_1a/' + file, delimiter=',')  # read in train.csv file
+    read_train = pd.read_csv('../../data_1/data_1a/' + file, delimiter=',')
     data_train = read_train.to_numpy()
 
-    #initialize the used arrays
-    Id = []
+    Id = []                                                                     #initialize the used arrays
     y = []
     X = []
 
-    for row in data_train:
+    for row in data_train:                                                      #Assign "Id", "y" and "X"
         Id.append(int(row[0]))
         y.append(row[1])
         X.append(list(row[2:]))
-
     return [Id,y,X]
 
+#DIVIDE THE DATA INTO DIFFERENT SECTIONS
 def make_batches(Id, number_of_batches):
-    size = len(Id)
-    batches = [[ 0 for i in range(0)] for i in range(number_of_batches)]
+    size = len(Id)                                                              #Get size of whole data
+    batches = [[ 0 for i in range(0)] for i in range(number_of_batches)]        #Initialize empty frame for the batches
 
-    for i in range(number_of_batches):
+    for i in range(number_of_batches):                                          #Fill in the batches array with the Id, each one spread equally over the whole data
         for j in range(size):
             if Id[j]%number_of_batches==i:
                 batches[i].append(Id[j])
-
     return batches
 
+#EXACT SOLUTION OF THE RIDGE REGRESSION
 def ridge_regression(X, y, alpha):
     w_star = np.dot(np.linalg.inv(np.dot(np.transpose(X), X) + alpha * np.identity(len(np.transpose(X)))), np.dot(np.transpose(X), y))
     return w_star
 
 
-#The file value is either "train.csv" or "test.csv"
 [Id, y, X] = read_in_data('train.csv')
 number_of_batches = 10
 batches = make_batches(Id,number_of_batches)
 
-file = open("alpha.csv", "w")
+file = open("alpha.csv", "w")                                                   #Create submission file with writing access
 
-for alpha in [0.01, 0.1, 1, 10, 100]:
+for _lambda in [0.01, 0.1, 1, 10, 100]:                                         #For each lambda
     rmse = []
     for i in range(number_of_batches):
-        X_red = X[:]
-        y_red = y[:]
+        X_red = X[:]                                                            #Copy the whole matrix X to X_red
+        y_red = y[:]                                                            #Copy the whole vector y to y_red
         X_val = []
         y_val = []
         for id in batches[i][::-1]:
-            X_val.append(X[id])
+            X_val.append(X[id])                                                 #Append the validation by the i-th part of batches
             y_val.append(y[id])
             del(X_red[id])
             del(y_red[id])
-        w = ridge_regression(X_red, y_red, alpha)
-        y_pred = np.dot(np.transpose(w), np.transpose(X_val))
-        rmse.append(np.sqrt(mean_squared_error(y_val, y_pred)))
-    rmse_mean = np.sum(rmse) / len(rmse)
+        w_star = ridge_regression(X_red, y_red, _lambda)                             #Compute the minimum weights
+        y_pred = np.dot(np.transpose(w_star), np.transpose(X_val))                   #Predict the output with this weights and the validation data
+        rmse.append(np.sqrt(mean_squared_error(y_val, y_pred)))                 #And compute the rmse w.r.t. the validation data for all alpha
+    rmse_mean = np.sum(rmse) / len(rmse)                                        #Compute the mean of the rmse values for all batches for a specific lambda
 
-    file.write(str(rmse_mean))
+    file.write(str(rmse_mean))                                                  #Write stuff to the submission file
     file.write('\n')
 file.close()
