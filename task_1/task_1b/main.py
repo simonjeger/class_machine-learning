@@ -49,22 +49,21 @@ def add_features(X_lin):
     return X
 
 #EXACT SOLUTION OF THE LINEAR REGRESSION
-def linear_regression(X, y):
-    w_star = np.dot(np.linalg.inv(np.dot(np.transpose(X), X)), np.dot(np.transpose(X), y))
+def ridge_regression(X, y, _lambda):
+    w_star = np.dot(np.linalg.inv(np.dot(np.transpose(X), X) + _lambda * np.identity(len(np.transpose(X)))), np.dot(np.transpose(X), y).T)
+    #w_star = np.dot(np.linalg.inv(np.dot(np.transpose(X), X)), np.dot(np.transpose(X), y))     #for linear regression (_lambda = 0)
     return w_star
 
 ###MAIN-------------------------------------------------------------------------
-[Id, y, X_lin] = read_in_data('train.csv')                                      #read the data from file
+[Id, y, X_lin] = read_in_data('train.csv')                                      #Read the data from file
 number_of_features = 21
 
 
-file = open("alpha.csv", "w")                                                   #Create submission file with writing access
+file = open("weights.csv", "w")                                                 #Create submission file with writing access
 
 X = add_features(X_lin)                                                         #Adding additional features to the matrix X
-w_star = linear_regression(X, y)
-#w_star_lin = linear_regression(X_lin, y)                                       #only for reference
+w_star = ridge_regression(X, y, 100)
 print(w_star)
-#print(w_star_lin)                                                              #onyl for reference
 
 for i in range(number_of_features):                                             #Write stuff to the submission file
     file.write(str(w_star[i]))
