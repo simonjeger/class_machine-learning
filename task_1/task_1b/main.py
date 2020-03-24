@@ -65,6 +65,7 @@ X = add_features(X_lin)                                                         
 w_star = ridge_regression(X, y, 100)
 print(w_star)
 
+
 for i in range(number_of_features):                                             #Write stuff to the submission file
     file.write(str(w_star[i]))
     file.write('\n')
