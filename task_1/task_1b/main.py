@@ -17,6 +17,7 @@ def read_in_data(file):
         Id.append(int(row[0]))
         y.append(row[1])
         X_lin.append(list(row[2:]))
+    print(X_lin)
     return [Id,y,X_lin]
 
 def add_features(X_lin):
