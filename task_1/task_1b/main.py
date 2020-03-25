@@ -53,12 +53,18 @@ def generate_features(X_lin, feature_index_vector):
     # Example of feature_index_vector: [1,1,0,1,1] = linear, quadratic, no exponential, cosine , constant
 
     #The matrix X must have as many columns as number_of_features
+    phi_1, phi_2, phi_3, phi_4, phi_5 = [], [], [], [], []
     phi_6, phi_7, phi_8, phi_9, phi_10 = [], [], [], [], []                     #for quadratic features
     phi_11, phi_12, phi_13, phi_14, phi_15 = [], [], [], [], []                 #for exponential features
     phi_16, phi_17, phi_18, phi_19, phi_20 = [], [], [], [], []                 #for cosine features
     phi_21 = []
 
     for row in X_lin:
+        phi_1.append(row[0])
+        phi_2.append(row[0])
+        phi_3.append(row[0])
+        phi_4.append(row[0])
+        phi_5.append(row[0])
         phi_6.append(row[0]**2)
         phi_7.append(row[1]**2)
         phi_8.append(row[2]**2)
@@ -76,16 +82,48 @@ def generate_features(X_lin, feature_index_vector):
         phi_20.append(np.cos(row[4]))
         phi_21.append(1)
 
-    X = [0] * len(X_lin)                                                            # I have to initialize X, otherwise I can't use np.c_
+    X = [0] * len(X_lin)
     if feature_index_vector[0] == 1:
-        X = np.c_[X, X_lin]
+        X = np.c_[X, phi_1]
     if feature_index_vector[1] == 1:
-        X = np.c_[X, phi_6, phi_7, phi_8, phi_9, phi_10]
+        X = np.c_[X, phi_2]
     if feature_index_vector[2] == 1:
-        X = np.c_[X, phi_11, phi_12, phi_13, phi_14, phi_15]
+        X = np.c_[X, phi_3]
     if feature_index_vector[3] == 1:
-        X = np.c_[X, phi_16, phi_17, phi_18, phi_19, phi_20]
+        X = np.c_[X, phi_4]
     if feature_index_vector[4] == 1:
+        X = np.c_[X, phi_5]
+    if feature_index_vector[5] == 1:
+        X = np.c_[X, phi_6]
+    if feature_index_vector[6] == 1:
+        X = np.c_[X, phi_7]
+    if feature_index_vector[7] == 1:
+        X = np.c_[X, phi_8]
+    if feature_index_vector[8] == 1:
+        X = np.c_[X, phi_9]
+    if feature_index_vector[9] == 1:
+        X = np.c_[X, phi_10]
+    if feature_index_vector[10] == 1:
+        X = np.c_[X, phi_11]
+    if feature_index_vector[11] == 1:
+        X = np.c_[X, phi_12]
+    if feature_index_vector[12] == 1:
+        X = np.c_[X, phi_13]
+    if feature_index_vector[13] == 1:
+        X = np.c_[X, phi_14]
+    if feature_index_vector[14] == 1:
+        X = np.c_[X, phi_15]
+    if feature_index_vector[15] == 1:
+        X = np.c_[X, phi_16]
+    if feature_index_vector[16] == 1:
+        X = np.c_[X, phi_17]
+    if feature_index_vector[17] == 1:
+        X = np.c_[X, phi_18]
+    if feature_index_vector[18] == 1:
+        X = np.c_[X, phi_19]
+    if feature_index_vector[19] == 1:
+        X = np.c_[X, phi_20]
+    if feature_index_vector[20] == 1:
         X = np.c_[X, phi_21]
     X = np.delete(X, 0, 1)                                                         # I delete the first column containing the zeros I added above
     return X
@@ -104,26 +142,35 @@ def root_mean_square_error(w_star, X, y):
 ###MAIN-------------------------------------------------------------------------
 [Id, y, X_lin] = read_in_data('train.csv')                                      #Read the data from file
 number_of_features = 21
-number_of_final_features = 1
-feature_index_vector = [1,1,1,1,1]
+number_of_final_features = 5
+feature_index_vector = [1]*number_of_features
 
-for j in range(5-number_of_final_features):
-    rmse = []
-    for i in range(5):
+j = 0
+rmse_min = []
+while np.sum(feature_index_vector) > number_of_final_features:
+    rmse = [-1]*len(feature_index_vector)
+    for i in range(len(feature_index_vector)):
         if feature_index_vector[i] != 0:
             feature_index_vector[i] = 0
-            print(feature_index_vector)
             X = generate_features(X_lin, feature_index_vector)
-            w_star = ridge_regression(X, y, 100)
-            rmse.append(root_mean_square_error(w_star, X, y))
+            w_star = ridge_regression(X, y, 0.0001)
+            rmse[i] = (root_mean_square_error(w_star, X, y))
             feature_index_vector[i] = 1
-    plt.scatter(j,np.min(rmse))                                                 # Plot rmse
+    rmse_min.append(np.min([n for n in rmse  if n>0]))
     feature_index_vector[np.argmax(rmse)] = 0
+plt.scatter(np.linspace(0,len(rmse_min), len(rmse_min)), rmse_min)
 plt.show()
 plt.close()
 
-"""file = open("weights.csv", "w")                                              #Create submission file with writing access
+w_write = feature_index_vector
+j = 0
+for i in range(number_of_features):
+    if feature_index_vector[i] == 1:
+        w_write[i] = w_star[j]
+        j = j+1
+
+file = open("weights.csv", "w")                                              #Create submission file with writing access
 for i in range(number_of_features):                                             #Write stuff to the submission file
-    file.write(str(w_star[i]))
+    file.write(str(w_write[i]))
     file.write('\n')
-file.close()"""
+file.close()
