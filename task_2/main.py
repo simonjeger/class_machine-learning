@@ -1,15 +1,16 @@
 import numpy as np
 from sklearn.metrics import mean_squared_error
 from sklearn.multiclass import OneVsRestClassifier
+from sklearn.linear_model import RidgeCV
 from sklearn import svm
-from scipy.special import expit
 import pandas as pd
 import inspect
 
 #READ DATA FROM CSV FILE AND TRANSFER TO NUMPY ARRAY
 def read_in_data():
-    #read train features (X_FEATURES)
-    read_train_features = pd.read_csv('../data_2/train_features.csv', delimiter=',', nrows=120)
+    #read train features (X_TRAIN)
+    line_numbers = 10                                                           #maximum number = 18995
+    read_train_features = pd.read_csv('../data_2/train_features.csv', delimiter=',', nrows=line_numbers*12)
     read_train_features = read_train_features.replace('nan', np.NaN)
     mean_train = read_train_features.mean()
     std_train = read_train_features.std()
@@ -17,21 +18,25 @@ def read_in_data():
     [X_TRAIN, pid_train] = pre_processing(number_of_patients, mean_train, std_train, read_train_features)
 
     #read train labels (pid and Y_LABELS)
-    read_train_labels = pd.read_csv('../data_2/train_labels.csv', delimiter=',', nrows=10)
+    read_train_labels = pd.read_csv('../data_2/train_labels.csv', delimiter=',', nrows=line_numbers)
     data_train_labels = read_train_labels.to_numpy()
 
-    Y_LABELS = []
+    Y_LABELS_1 = []
+    Y_LABELS_2 = []
+    Y_LABELS_3 = []
     for row in data_train_labels:
-        Y_LABELS.append(list(row[1:11]))
+        Y_LABELS_1.append(list(row[1:11]))
+        Y_LABELS_2.append(float(row[11]))
+        Y_LABELS_3.append(list(row[12:16]))
 
     #read test data (X_TEST)
-    read_test_features = pd.read_csv('../data_2/test_features.csv', delimiter=',', nrows=120)
+    read_test_features = pd.read_csv('../data_2/test_features.csv', delimiter=',', nrows=line_numbers*12)
     read_test_features = read_test_features.replace('nan', np.NaN)
     mean_test = read_test_features.mean()
     std_test = read_test_features.std()
     [X_TEST, pid_test] = pre_processing(number_of_patients, mean_test, std_test, read_test_features)
 
-    return [pid_train, pid_test, Y_LABELS, X_TRAIN, X_TEST]
+    return [pid_train, pid_test, Y_LABELS_1, Y_LABELS_2, Y_LABELS_3, X_TRAIN, X_TEST]
 
 def pre_processing(number_of_patients, mean, std, data_set):
     X_CUT = []
@@ -45,6 +50,7 @@ def pre_processing(number_of_patients, mean, std, data_set):
 
         for j in range(0,len(X_append)):
             if np.isnan(X_append[j]):
+                np.random.seed(1)
                 X_append[j] = np.random.normal(mean, std, 1)
         X_CUT.append(list(X_append))
 
@@ -52,39 +58,38 @@ def pre_processing(number_of_patients, mean, std, data_set):
 
 
 ###---------------MAIN----------------------------------------------------------
-[pid_train, pid_test, Y_LABELS, X_TRAIN, X_TEST] = read_in_data()            #Read the data from features file
+[pid_train, pid_test, Y_LABELS_1, Y_LABELS_2, Y_LABELS_3, X_TRAIN, X_TEST] = read_in_data()            #Read the data from features file
 X_TEST = np.nan_to_num(X_TEST)#random stuff:)
 
 
 ##Subtask 1: Setting up a model with multiclass labels
-model = OneVsRestClassifier(svm.SVC(kernel='linear', probability=True))
-model.fit(X_TRAIN, Y_LABELS)
-
+model_1 = OneVsRestClassifier(svm.SVC(kernel='linear', probability=True))
+model_1.fit(X_TRAIN, Y_LABELS_1)
 #Prediction
-y_pred = model.predict_proba(X_TEST)
-print(y_pred)
+y_pred_1 = model_1.predict_proba(X_TEST)
+#print(y_pred_1)
 
 
 
-##Subtask 2:
-#9.)    Train a model using the label sepsis (0 for no sepsis, 1 otherwise)
+##Subtask 2: Setting up a model for sepsis
+model_2 = svm.SVC(kernel='linear', probability=True)
+model_2.fit(X_TRAIN, Y_LABELS_2)
+#Prediction
+y_pred_2 = model_2.predict_proba(X_TEST)[:,1]
+#print(y_pred_2)
 
 
-#10.)   Predicting the occurance of sepsis with the standard function model.predict
-        #example:     if(model.predict([[X_FEATURES[i](Age), ..., X_FEATURES[i](pH) ]]))==0:
+##Subtask 3: Setting up a model for mean of vital signs
+model_3 = RidgeCV(alphas=[1e-3, 1e-2, 1e-1, 1], cv=None)                        #None for Leave-One-Out cross-validation
+model_3.fit(X_TRAIN, Y_LABELS_3)
+#Prediction
+y_pred_3 = model_3.predict(X_TEST)
+#print(y_pred_3)
 
+#Creating submission matrix and writing to zip
+M_Sub = np.c_[pid_test, y_pred_1, y_pred_2, y_pred_3]
+M_Sub_panda = pd.DataFrame(data=M_Sub, columns=["pid","LABEL_BaseExcess","LABEL_Fibrinogen","LABEL_AST","LABEL_Alkalinephos","LABEL_Bilirubin_total","LABEL_Lactate","LABEL_TroponinI","LABEL_SaO2","LABEL_Bilirubin_direct","LABEL_EtCO2","LABEL_Sepsis","LABEL_RRate","LABEL_ABPm","LABEL_SpO2","LABEL_Heartrate"])
+#print(M_Sub_panda)
 
-#11.)   Writing the LABELS and the prediction for sepsis to the sample.csv file
-
-
-
-
-
-#file = open("sample_try.csv", "w")                                                  #Create submission file with writing access
-#number_of_features = 20
-
-
-#for i in range(number_of_features):                                             #Write stuff to the submission file
-#    file.write(str(np.nan))
-#    file.write('\n')
-#file.close()
+compression_opts = dict(method='zip', archive_name='sample.csv')
+M_Sub_panda.to_csv('sample.zip', index=False, float_format='%.3f', compression=compression_opts)
