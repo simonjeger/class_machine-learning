@@ -1,32 +1,102 @@
 import numpy as np
 from sklearn.metrics import mean_squared_error
-from sklearn.linear_model import Ridge
-from sklearn.impute import SimpleImputer
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn import svm
+from scipy.special import expit
 import pandas as pd
+import inspect
 
 #READ DATA FROM CSV FILE AND TRANSFER TO NUMPY ARRAY
 def read_in_data():
-    read_train_features = pd.read_csv('../task_2/sample_try.csv', delimiter=';')
+    #read train features (X_FEATURES)
+    read_train_features = pd.read_csv('../data_2/train_features.csv', delimiter=',', nrows=120)
     read_train_features = read_train_features.replace('nan', np.NaN)
-
-    read_train_features.fillna(read_train_features.mean(), inplace=True)
-
+    read_train_features.fillna(read_train_features.mean(), inplace=True)        #Dealing with "nan" values --> replacing them with the mean value of the whole column
     data_train_features = read_train_features.to_numpy()
 
     X_FEATURES = []
+    for row in data_train_features:                                             #from Age (column C) to pH (column AK)
+        X_FEATURES.append(list(row[2:]))
 
-    for row in data_train_features:
-        X_FEATURES.append(list(row[1:]))
+    #read train labels (pid and Y_LABELS)
+    read_train_labels = pd.read_csv('../data_2/train_labels.csv', delimiter=',', nrows=10)
+    data_train_labels = read_train_labels.to_numpy()
 
-    return X_FEATURES, data_train_features
+    pid = []
+    Y_LABELS = []
+    for row in data_train_labels:
+        pid.append(int(row[0]))
+        Y_LABELS.append(list(row[1:11]))
+
+    #read test data (X_TEST)
+    read_test_features = pd.read_csv('../data_2/test_features.csv', delimiter=',', nrows=120)
+    read_test_features = read_test_features.replace('nan', np.NaN)
+    read_test_features.fillna(read_test_features.mean(), inplace=True)          #Dealing with "nan" values --> replacing them with the mean value of the whole column
+    data_test_features = read_test_features.to_numpy()
+
+    X_TEST = []
+    for row in data_test_features:
+        X_TEST.append(list(row[2:]))
+
+    return [pid, Y_LABELS, X_FEATURES, X_TEST]
+
+def pre_processing(pid, X_LONG):
+    X_CUT = []
+    for i in range(1,len(pid)+1):                                               #going from 1 to the maximum number of patients
+        X_Patient = X_LONG[(1+12*(i-1)):(12*i)]                             #take only the relevant data for that specific patient
+        X_CUT.append(list(np.mean(X_Patient, axis=0)))                               #axis=0 for taking the mean value over columns instead of rows
+
+    X_CUT = np.nan_to_num(X_CUT)                                              #OPTIONAL: convert all nan's to 0.0 (should not be necessary in the end anymore...)
+
+    return X_CUT
+
+def predict(X_TEST_cut):            #TODO!!!
+    return expit(X_TEST_cut)
+
+
+###---------------MAIN----------------------------------------------------------
+[pid, Y_LABELS, X_FEATURES, X_TEST] = read_in_data()                            #Read the data from features file
+
+#nans have been replaced and now the X_FEATURES is shrinked to only one row per patient using mean approximation
+X_TRAIN = pre_processing(pid, X_FEATURES)                                        #from now on work with X_DATA
+
+##Subtask 1: Setting up a model with multiclass labels
+model = OneVsRestClassifier(svm.SVC(kernel='linear'))
+#print(X_DATA)
+model.fit(X_TRAIN, Y_LABELS)
+
+X_VALID = pre_processing(pid, X_TEST)
+#Prediction
+y_pred = model.predict(X_VALID)
+print(y_pred)
+#y_mypred = predict(X_VALID)
+#print(y_mypred)
+
+#for i in range(0,n_cutoff):
+#    print(y_pred_cut[12*i])
 
 
 
-print(read_in_data())
 
-old_array = [1,2,3,4,5,6,7,8,9,10]
-n = 2
-new_array = []
-for j in range(len(old_array)):
-    for i in range(n):
-        new_array.append(old_array[j])
+##Subtask 2:
+#9.)    Train a model using the label sepsis (0 for no sepsis, 1 otherwise)
+
+
+#10.)   Predicting the occurance of sepsis with the standard function model.predict
+        #example:     if(model.predict([[X_FEATURES[i](Age), ..., X_FEATURES[i](pH) ]]))==0:
+
+
+#11.)   Writing the LABELS and the prediction for sepsis to the sample.csv file
+
+
+
+
+
+#file = open("sample_try.csv", "w")                                                  #Create submission file with writing access
+#number_of_features = 20
+
+
+#for i in range(number_of_features):                                             #Write stuff to the submission file
+#    file.write(str(np.nan))
+#    file.write('\n')
+#file.close()
