@@ -11,77 +11,58 @@ def read_in_data():
     #read train features (X_FEATURES)
     read_train_features = pd.read_csv('../data_2/train_features.csv', delimiter=',', nrows=120)
     read_train_features = read_train_features.replace('nan', np.NaN)
-    #read_train_features.fillna(read_train_features.mean(), inplace=True)        #Dealing with "nan" values --> replacing them with the mean value of the whole column
-    data_train_features = read_train_features.to_numpy()
-
-    X_FEATURES = []
-    for row in data_train_features:                                             #from Age (column C) to pH (column AK)
-        X_FEATURES.append(list(row[2:]))
+    mean_train = read_train_features.mean()
+    std_train = read_train_features.std()
+    number_of_patients = int(read_train_features.shape[0]/12)
+    [X_TRAIN, pid_train] = pre_processing(number_of_patients, mean_train, std_train, read_train_features)
 
     #read train labels (pid and Y_LABELS)
     read_train_labels = pd.read_csv('../data_2/train_labels.csv', delimiter=',', nrows=10)
     data_train_labels = read_train_labels.to_numpy()
 
-    pid = []
     Y_LABELS = []
     for row in data_train_labels:
-        pid.append(int(row[0]))
         Y_LABELS.append(list(row[1:11]))
 
     #read test data (X_TEST)
     read_test_features = pd.read_csv('../data_2/test_features.csv', delimiter=',', nrows=120)
     read_test_features = read_test_features.replace('nan', np.NaN)
-    read_test_features.fillna(read_test_features.mean(), inplace=True)          #Dealing with "nan" values --> replacing them with the mean value of the whole column
-    data_test_features = read_test_features.to_numpy()
+    mean_test = read_test_features.mean()
+    std_test = read_test_features.std()
+    [X_TEST, pid_test] = pre_processing(number_of_patients, mean_test, std_test, read_test_features)
 
-    X_TEST = []
-    for row in data_test_features:
-        X_TEST.append(list(row[2:]))
+    return [pid_train, pid_test, Y_LABELS, X_TRAIN, X_TEST]
 
-    return [pid, Y_LABELS, X_FEATURES, X_TEST]
-
-def pre_processing(pid, X_LONG):
-    mean = np.mean(X_LONG, axis=0)                                              #array with mean of all the values in the big matrix
-    print(mean)
-    std = np.std(X_LONG, axis=0)
-    print(std)
+def pre_processing(number_of_patients, mean, std, data_set):
     X_CUT = []
-    for i in range(1,len(pid)+1):                                               #going from 1 through all patients
-        X_Patient = X_LONG[(1+12*(i-1)):(12*i)]                                 #extract only the relevant data for that specific patient
-        X_append = np.mean(X_Patient, axis=0)
+    pid = []
+    for i in range(0,number_of_patients):                                       #going from 1 through all patients
+        X_Patient = data_set.iloc[(12*i):(12*(i+1)),:]                          #extract only the relevant data for that specific patient
+        X_append = X_Patient.mean()
+        X_append = X_append.to_numpy()                                          #Has still all the columns in it
+        pid.append(X_append[0])
+        X_append = X_append[2:]                                                 #cut away the pid and the time (start from Age)
+
         for j in range(0,len(X_append)):
             if np.isnan(X_append[j]):
                 X_append[j] = np.random.normal(mean, std, 1)
-        X_CUT.append(list(X_append))                                                  #axis=0 for taking the mean value over columns instead of rows
+        X_CUT.append(list(X_append))
 
-
-    return X_CUT
-
-def predict(X_TEST_cut):            #TODO!!!
-    return expit(X_TEST_cut)
+    return [X_CUT, pid]
 
 
 ###---------------MAIN----------------------------------------------------------
-[pid, Y_LABELS, X_FEATURES, X_TEST] = read_in_data()                            #Read the data from features file
+[pid_train, pid_test, Y_LABELS, X_TRAIN, X_TEST] = read_in_data()            #Read the data from features file
+X_TEST = np.nan_to_num(X_TEST)#random stuff:)
 
-#nans have been replaced and now the X_FEATURES is shrinked to only one row per patient using mean approximation
-X_TRAIN = pre_processing(pid, X_FEATURES)                                       #from now on work with X_DATA
 
 ##Subtask 1: Setting up a model with multiclass labels
-model = OneVsRestClassifier(svm.SVC(kernel='linear'))
-#print(X_DATA)
+model = OneVsRestClassifier(svm.SVC(kernel='linear', probability=True))
 model.fit(X_TRAIN, Y_LABELS)
 
-X_VALID = pre_processing(pid, X_TEST)
 #Prediction
-y_pred = model.predict(X_VALID)
+y_pred = model.predict_proba(X_TEST)
 print(y_pred)
-#y_mypred = predict(X_VALID)
-#print(y_mypred)
-
-#for i in range(0,n_cutoff):
-#    print(y_pred_cut[12*i])
-
 
 
 
