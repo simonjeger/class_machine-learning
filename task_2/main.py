@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.utils import shuffle
 from sklearn.metrics import mean_squared_error
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.linear_model import RidgeCV
@@ -6,20 +7,10 @@ from sklearn import svm
 import pandas as pd
 
 #READ DATA FROM CSV FILE AND TRANSFER TO NUMPY ARRAY
-def read_in_data():
-    #read train features (X_TRAIN)
-    line_numbers = 50                                                          #maximum number = 18995, minimum number = 100
-    read_train_features = pd.read_csv('../data_2/train_features.csv', delimiter=',', nrows=(line_numbers*12))
-    read_train_features = read_train_features.replace('nan', np.NaN)
-    mean_train = np.array(read_train_features.mean())
-    std_train = np.array(read_train_features.std())
-    number_train_patients = int(read_train_features.shape[0]/12)
-    [X_TRAIN, pid_train] = pre_processing(number_train_patients, mean_train, std_train, read_train_features)
-
+def read_in_data(patients):
     #read train labels (Y_LABELS)
-    read_train_labels = pd.read_csv('../data_2/train_labels.csv', delimiter=',', nrows=line_numbers)
+    read_train_labels = pd.read_csv('../data_2/train_labels.csv', delimiter=',')
     data_train_labels = np.array(read_train_labels)
-
     Y_LABELS_1 = []
     Y_LABELS_2 = []
     Y_LABELS_3 = []
@@ -27,6 +18,17 @@ def read_in_data():
         Y_LABELS_1.append(list(row[1:11]))
         Y_LABELS_2.append(float(row[11]))
         Y_LABELS_3.append(list(row[12:16]))
+
+    #read train features (X_TRAIN)
+    read_train_features = pd.read_csv('../data_2/train_features.csv', delimiter=',')
+    read_train_features = read_train_features.replace('nan', np.NaN)            #MAGIE
+    mean_train = np.array(read_train_features.mean())                           #get mean and std over all patients for filling in nan's
+    std_train = np.array(read_train_features.std())
+    number_train_patients = int(read_train_features.shape[0]/12)
+    [X_TRAIN, pid_train] = pre_processing(number_train_patients, mean_train, std_train, read_train_features)        #pull X_TRAIN together for only one row per patient
+
+    [X_TRAIN, Y_LABELS_1, Y_LABELS_2, Y_LABELS_3] = shuffle(X_TRAIN, Y_LABELS_1, Y_LABELS_2, Y_LABELS_3, n_samples=patients)      #shuffling and taking only the desired number of patients for training
+    print(X_TRAIN)
 
     #read test data (X_TEST)
     read_test_features = pd.read_csv('../data_2/test_features.csv', delimiter=',')
@@ -58,23 +60,24 @@ def pre_processing(number_of_patients, mean, std, data_set):
 
 
 ###---------------MAIN----------------------------------------------------------
-[pid_train, pid_test, Y_LABELS_1, Y_LABELS_2, Y_LABELS_3, X_TRAIN, X_TEST] = read_in_data()            #Read the data from features file
+patients = 50                                                                  #nmber of patients to train the model
+[pid_train, pid_test, Y_LABELS_1, Y_LABELS_2, Y_LABELS_3, X_TRAIN, X_TEST] = read_in_data(patients)            #Read the data from features file
 X_TEST = np.nan_to_num(X_TEST)#random stuff:)
 
 ##Subtask 1: Setting up a model with multiclass labels
 model_1 = OneVsRestClassifier(svm.SVC(kernel='linear', probability=True))
-model_1.fit(X_TRAIN, Y_LABELS_1)
+model_1.fit(np.array(X_TRAIN), np.array(Y_LABELS_1))
 y_pred_1 = model_1.predict_proba(X_TEST)                                        #Prediction
 
 
 ##Subtask 2: Setting up a model for sepsis
 model_2 = svm.SVC(kernel='linear', probability=True)
-model_2.fit(X_TRAIN, Y_LABELS_2)
+model_2.fit(np.array(X_TRAIN), np.array(Y_LABELS_2))
 y_pred_2 = model_2.predict_proba(X_TEST)[:,1]                                   #Prediction
 
 ##Subtask 3: Setting up a model for mean of vital signs
 model_3 = RidgeCV(alphas=[1e-3, 1e-2, 1e-1, 1], cv=None)                        #None for Leave-One-Out cross-validation
-model_3.fit(X_TRAIN, Y_LABELS_3)
+model_3.fit(np.array(X_TRAIN), np.array(Y_LABELS_3))
 y_pred_3 = model_3.predict(X_TEST)                                              #Prediction
 
 #Creating submission matrix and writing to zip

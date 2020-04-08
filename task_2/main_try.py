@@ -8,7 +8,7 @@ import pandas as pd
 #READ DATA FROM CSV FILE AND TRANSFER TO NUMPY ARRAY
 def read_in_data():
     #read train features (X_TRAIN)
-    line_numbers = 200                                                          #maximum number = 18995, minimum number = 100
+    line_numbers = 50                                                          #maximum number = 18995, minimum number = 100
     read_train_features = pd.read_csv('../data_2/train_features.csv', delimiter=',', nrows=(line_numbers*12))
     read_train_features = read_train_features.replace('nan', np.NaN)
     mean_train = np.array(read_train_features.mean())
@@ -29,7 +29,7 @@ def read_in_data():
         Y_LABELS_3.append(list(row[12:16]))
 
     #read test data (X_TEST)
-    read_test_features = pd.read_csv('../data_2/test_features.csv', delimiter=','
+    read_test_features = pd.read_csv('../data_2/test_features.csv', delimiter=',')
     read_test_features = read_test_features.replace('nan', np.NaN)
     mean_test = np.array(read_test_features.mean())
     std_test = np.array(read_test_features.std())
