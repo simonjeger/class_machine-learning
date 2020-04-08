@@ -8,7 +8,7 @@ import pandas as pd
 #READ DATA FROM CSV FILE AND TRANSFER TO NUMPY ARRAY
 def read_in_data():
     #read train features (X_TRAIN)
-    line_numbers = 100                                                          #maximum number = 18995, minimum number = 100
+    line_numbers = 50                                                          #maximum number = 18995, minimum number = 100
     read_train_features = pd.read_csv('../data_2/train_features.csv', delimiter=',', nrows=(line_numbers*12))
     read_train_features = read_train_features.replace('nan', np.NaN)
     mean_train = np.array(read_train_features.mean())
