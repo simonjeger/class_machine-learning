@@ -8,7 +8,7 @@ import pandas as pd
 #READ DATA FROM CSV FILE AND TRANSFER TO NUMPY ARRAY
 def read_in_data():
     #read train features (X_TRAIN)
-    line_numbers = 50                                                          #maximum number = 18995, minimum number = 100
+    line_numbers = 1153                                                          #maximum number = 18995, minimum number = 100
     read_train_features = pd.read_csv('../data_2/train_features.csv', delimiter=',', nrows=(line_numbers*12))
     read_train_features = read_train_features.replace('nan', np.NaN)
     mean_train = np.array(read_train_features.mean())
@@ -86,5 +86,6 @@ y_pred_3 = model_3.predict(X_TEST)                                              
 M_Sub = np.c_[pid_test, y_pred_1, y_pred_2, y_pred_3]
 M_Sub_panda = pd.DataFrame(data=M_Sub, columns=["pid","LABEL_BaseExcess","LABEL_Fibrinogen","LABEL_AST","LABEL_Alkalinephos","LABEL_Bilirubin_total","LABEL_Lactate","LABEL_TroponinI","LABEL_SaO2","LABEL_Bilirubin_direct","LABEL_EtCO2","LABEL_Sepsis","LABEL_RRate","LABEL_ABPm","LABEL_SpO2","LABEL_Heartrate"])
 
+M_Sub_panda.to_csv(r'sample.csv', index = False)
 compression_opts = dict(method='zip', archive_name='sample.csv')
 M_Sub_panda.to_csv('sample.zip', index=False, float_format='%.3f', compression=compression_opts)

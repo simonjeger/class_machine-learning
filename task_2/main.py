@@ -60,7 +60,7 @@ def pre_processing(number_of_patients, mean, std, data_set):
 
 
 ###---------------MAIN----------------------------------------------------------
-patients = 50                                                                  #nmber of patients to train the model
+patients = 1153                                                                  #nmber of patients to train the model
 [pid_train, pid_test, Y_LABELS_1, Y_LABELS_2, Y_LABELS_3, X_TRAIN, X_TEST] = read_in_data(patients)            #Read the data from features file
 X_TEST = np.nan_to_num(X_TEST)#random stuff:)
 
@@ -84,5 +84,6 @@ y_pred_3 = model_3.predict(X_TEST)                                              
 M_Sub = np.c_[pid_test, y_pred_1, y_pred_2, y_pred_3]
 M_Sub_panda = pd.DataFrame(data=M_Sub, columns=["pid","LABEL_BaseExcess","LABEL_Fibrinogen","LABEL_AST","LABEL_Alkalinephos","LABEL_Bilirubin_total","LABEL_Lactate","LABEL_TroponinI","LABEL_SaO2","LABEL_Bilirubin_direct","LABEL_EtCO2","LABEL_Sepsis","LABEL_RRate","LABEL_ABPm","LABEL_SpO2","LABEL_Heartrate"])
 
+M_Sub_panda.to_csv(r'sample.csv', index = False)
 compression_opts = dict(method='zip', archive_name='sample.csv')
 M_Sub_panda.to_csv('sample.zip', index=False, float_format='%.3f', compression=compression_opts)
