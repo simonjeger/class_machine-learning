@@ -6,9 +6,8 @@ from sklearn import svm
 import pandas as pd
 
 #READ DATA FROM CSV FILE AND TRANSFER TO NUMPY ARRAY
-def read_in_data():
+def read_in_data(line_numbers):
     #read train features (X_TRAIN)
-    line_numbers = 1153                                                          #maximum number = 18995, minimum number = 100
     read_train_features = pd.read_csv('../data_2/train_features.csv', delimiter=',', nrows=(line_numbers*12))
     read_train_features = read_train_features.replace('nan', np.NaN)
     mean_train = np.array(read_train_features.mean())
@@ -58,8 +57,9 @@ def pre_processing(number_of_patients, mean, std, data_set):
 
 
 ###---------------MAIN----------------------------------------------------------
-[pid_train, pid_test, Y_LABELS_1, Y_LABELS_2, Y_LABELS_3, X_TRAIN, X_TEST] = read_in_data()            #Read the data from features file
-X_TEST = np.nan_to_num(X_TEST)#random stuff:)
+patients = 50
+[pid_train, pid_test, Y_LABELS_1, Y_LABELS_2, Y_LABELS_3, X_TRAIN, X_TEST] = read_in_data(patients)            #Read the data from features file
+X_TEST = np.nan_to_num(X_TEST)
 
 ##Subtask 1: Setting up a model with multiclass labels
 y_pred_1 = []
@@ -86,6 +86,6 @@ y_pred_3 = model_3.predict(X_TEST)                                              
 M_Sub = np.c_[pid_test, y_pred_1, y_pred_2, y_pred_3]
 M_Sub_panda = pd.DataFrame(data=M_Sub, columns=["pid","LABEL_BaseExcess","LABEL_Fibrinogen","LABEL_AST","LABEL_Alkalinephos","LABEL_Bilirubin_total","LABEL_Lactate","LABEL_TroponinI","LABEL_SaO2","LABEL_Bilirubin_direct","LABEL_EtCO2","LABEL_Sepsis","LABEL_RRate","LABEL_ABPm","LABEL_SpO2","LABEL_Heartrate"])
 
-M_Sub_panda.to_csv(r'sample.csv', index = False)
+M_Sub_panda.to_csv(r'sample_try_' + str(patients) + '.csv', index = False)
 compression_opts = dict(method='zip', archive_name='sample.csv')
-M_Sub_panda.to_csv('sample.zip', index=False, float_format='%.3f', compression=compression_opts)
+M_Sub_panda.to_csv('sample_try_' + str(patients) + '.zip', index=False, float_format='%.3f', compression=compression_opts)
