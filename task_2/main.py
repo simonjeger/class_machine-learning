@@ -13,8 +13,8 @@ def read_in_data():
     read_train_features = read_train_features.replace('nan', np.NaN)
     mean_train = np.array(read_train_features.mean())
     std_train = np.array(read_train_features.std())
-    number_of_patients = int(read_train_features.shape[0]/12)
-    [X_TRAIN, pid_train] = pre_processing(number_of_patients, mean_train, std_train, read_train_features)
+    number_train_patients = int(read_train_features.shape[0]/12)
+    [X_TRAIN, pid_train] = pre_processing(number_train_patients, mean_train, std_train, read_train_features)
 
     #read train labels (Y_LABELS)
     read_train_labels = pd.read_csv('../data_2/train_labels.csv', delimiter=',', nrows=line_numbers)
@@ -29,11 +29,12 @@ def read_in_data():
         Y_LABELS_3.append(list(row[12:16]))
 
     #read test data (X_TEST)
-    read_test_features = pd.read_csv('../data_2/test_features.csv', delimiter=',', nrows=(line_numbers*12))
+    read_test_features = pd.read_csv('../data_2/test_features.csv', delimiter=',')
     read_test_features = read_test_features.replace('nan', np.NaN)
     mean_test = np.array(read_test_features.mean())
     std_test = np.array(read_test_features.std())
-    [X_TEST, pid_test] = pre_processing(number_of_patients, mean_test, std_test, read_test_features)
+    number_test_patients = int(read_test_features.shape[0]/12)
+    [X_TEST, pid_test] = pre_processing(number_test_patients, mean_test, std_test, read_test_features)
 
     return [pid_train, pid_test, Y_LABELS_1, Y_LABELS_2, Y_LABELS_3, X_TRAIN, X_TEST]
 
@@ -71,17 +72,14 @@ model_2 = svm.SVC(kernel='linear', probability=True)
 model_2.fit(X_TRAIN, Y_LABELS_2)
 y_pred_2 = model_2.predict_proba(X_TEST)[:,1]                                   #Prediction
 
-
 ##Subtask 3: Setting up a model for mean of vital signs
 model_3 = RidgeCV(alphas=[1e-3, 1e-2, 1e-1, 1], cv=None)                        #None for Leave-One-Out cross-validation
 model_3.fit(X_TRAIN, Y_LABELS_3)
 y_pred_3 = model_3.predict(X_TEST)                                              #Prediction
 
-
 #Creating submission matrix and writing to zip
 M_Sub = np.c_[pid_test, y_pred_1, y_pred_2, y_pred_3]
 M_Sub_panda = pd.DataFrame(data=M_Sub, columns=["pid","LABEL_BaseExcess","LABEL_Fibrinogen","LABEL_AST","LABEL_Alkalinephos","LABEL_Bilirubin_total","LABEL_Lactate","LABEL_TroponinI","LABEL_SaO2","LABEL_Bilirubin_direct","LABEL_EtCO2","LABEL_Sepsis","LABEL_RRate","LABEL_ABPm","LABEL_SpO2","LABEL_Heartrate"])
-print(M_Sub_panda)
 
 compression_opts = dict(method='zip', archive_name='sample.csv')
 M_Sub_panda.to_csv('sample.zip', index=False, float_format='%.3f', compression=compression_opts)
