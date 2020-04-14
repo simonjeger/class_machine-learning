@@ -76,12 +76,13 @@ X_TEST = np.nan_to_num(X_TEST)          #random stuff:)
 model_1 = OneVsRestClassifier(svm.SVC(kernel='linear', probability=True))
 model_1.fit(np.array(X_TRAIN), np.array(Y_LABELS_1))
 y_pred_1 = model_1.predict_proba(X_TEST)                                        #Prediction
-
+y_pred_1_sigmoid = 1/(1 + np.exp(-model_1.decision_function(X_TEST)))
 
 ##Subtask 2: Setting up a model for sepsis
 model_2 = svm.SVC(kernel='linear', probability=True)
 model_2.fit(np.array(X_TRAIN), np.array(Y_LABELS_2))
 y_pred_2 = model_2.predict_proba(X_TEST)[:,1]                                   #Prediction
+y_pred_2_sigmoid = 1/(1 + np.exp(-model_2.decision_function(X_TEST)))
 
 ##Subtask 3: Setting up a model for mean of vital signs
 model_3 = RidgeCV(alphas=[1e-3, 1e-2, 1e-1, 1], cv=None)                        #None for Leave-One-Out cross-validation
@@ -89,7 +90,7 @@ model_3.fit(np.array(X_TRAIN), np.array(Y_LABELS_3))
 y_pred_3 = model_3.predict(X_TEST)                                              #Prediction
 
 #Creating submission matrix and writing to zip
-M_Sub = np.c_[pid_test, y_pred_1, y_pred_2, y_pred_3]
+M_Sub = np.c_[pid_test, y_pred_1_sigmoid, y_pred_2_sigmoid, y_pred_3]
 M_Sub_panda = pd.DataFrame(data=M_Sub, columns=["pid","LABEL_BaseExcess","LABEL_Fibrinogen","LABEL_AST","LABEL_Alkalinephos","LABEL_Bilirubin_total","LABEL_Lactate","LABEL_TroponinI","LABEL_SaO2","LABEL_Bilirubin_direct","LABEL_EtCO2","LABEL_Sepsis","LABEL_RRate","LABEL_ABPm","LABEL_SpO2","LABEL_Heartrate"])
 
 M_Sub_panda.to_csv(r'sample_' + str(patients) + '.csv', index = False)
