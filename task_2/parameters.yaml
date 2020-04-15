@@ -1,0 +1,4 @@
+patients: 50 
+activation_number_of_tests: 1 
+predicting_method: 'sigmoid'
+ processing_method: 'deterministic'
