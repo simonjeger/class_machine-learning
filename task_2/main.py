@@ -45,7 +45,8 @@ def pre_processing(number_of_patients, mean, std, data_set, activation_number_of
 
     for i in range(0,number_of_patients):                                       #going from 1 through all patients
         X_Patient = data_set.iloc[(12*i):(12*(i+1)),:]                          #extract only the relevant data for that specific patient
-        X_append = X_Patient.mean()
+        np.random.seed(1)
+        X_append = np.random.normal(X_Patient.mean(),X_Patient.std(),1)
         X_append = np.array(X_append)                                           #Has still all the columns in it
         pid.append(X_append[0])
         X_append = X_append[2:]                                                 #cut away the pid and the time (start from Age)

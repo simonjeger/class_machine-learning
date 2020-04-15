@@ -6,14 +6,14 @@ from sklearn import svm
 import pandas as pd
 
 #READ DATA FROM CSV FILE AND TRANSFER TO NUMPY ARRAY
-def read_in_data(line_numbers):
+def read_in_data(line_numbers, activation_number_of_tests):
     #read train features (X_TRAIN)
     read_train_features = pd.read_csv('../data_2/train_features.csv', delimiter=',', nrows=(line_numbers*12))
     read_train_features = read_train_features.replace('nan', np.NaN)
     mean_train = np.array(read_train_features.mean())
     std_train = np.array(read_train_features.std())
     number_train_patients = int(read_train_features.shape[0]/12)
-    [X_TRAIN, pid_train] = pre_processing(number_train_patients, mean_train, std_train, read_train_features)
+    [X_TRAIN, pid_train] = pre_processing(number_train_patients, mean_train, std_train, read_train_features, activation_number_of_tests)
 
     #read train labels (Y_LABELS)
     read_train_labels = pd.read_csv('../data_2/train_labels.csv', delimiter=',', nrows=line_numbers)
@@ -33,16 +33,17 @@ def read_in_data(line_numbers):
     mean_test = np.array(read_test_features.mean())
     std_test = np.array(read_test_features.std())
     number_test_patients = int(read_test_features.shape[0]/12)
-    [X_TEST, pid_test] = pre_processing(number_test_patients, mean_test, std_test, read_test_features)
+    [X_TEST, pid_test] = pre_processing(number_test_patients, mean_test, std_test, read_test_features, activation_number_of_tests)
 
     return [pid_train, pid_test, Y_LABELS_1, Y_LABELS_2, Y_LABELS_3, X_TRAIN, X_TEST]
 
-def pre_processing(number_of_patients, mean, std, data_set):
+def pre_processing(number_of_patients, mean, std, data_set, activation_number_of_tests):
     X_CUT = []
     pid = []
     for i in range(0,number_of_patients):                                       #going from 1 through all patients
         X_Patient = data_set.iloc[(12*i):(12*(i+1)),:]                          #extract only the relevant data for that specific patient
-        X_append = X_Patient.mean()
+        np.random.seed(1)
+        X_append = np.random.normal(X_Patient.mean(),X_Patient.std(),1)
         X_append = np.array(X_append)                                           #Has still all the columns in it
         pid.append(X_append[0])
         X_append = X_append[2:]                                                 #cut away the pid and the time (start from Age)
@@ -51,6 +52,12 @@ def pre_processing(number_of_patients, mean, std, data_set):
             if np.isnan(X_append[j]):
                 np.random.seed(1)
                 X_append[j] = np.random.normal(mean[j+2], std[j+2], 1)
+
+        if activation_number_of_tests == True:
+            number_of_tests_made = 0
+            number_of_tests_made = np.count_nonzero(~np.isnan(np.array(X_Patient)[0:12,3:len(X_append)+2]))     #number of non-NaN values in all tests over all hours
+            X_append = np.append(X_append, number_of_tests_made)
+
         X_CUT.append(list(X_append))
 
     return [X_CUT, pid]
@@ -58,7 +65,9 @@ def pre_processing(number_of_patients, mean, std, data_set):
 
 ###---------------MAIN----------------------------------------------------------
 patients = 50
-[pid_train, pid_test, Y_LABELS_1, Y_LABELS_2, Y_LABELS_3, X_TRAIN, X_TEST] = read_in_data(patients)            #Read the data from features file
+activation_number_of_tests = True
+
+[pid_train, pid_test, Y_LABELS_1, Y_LABELS_2, Y_LABELS_3, X_TRAIN, X_TEST] = read_in_data(patients, activation_number_of_tests)            #Read the data from features file
 X_TEST = np.nan_to_num(X_TEST)
 
 ##Subtask 1: Setting up a model with multiclass labels
@@ -69,13 +78,16 @@ for column in range(0,10):
     model_1.fit(X_TRAIN, Y_LABELS_1[:,column])
     if column == 0:
         y_pred_1 = model_1.predict_proba(X_TEST)[:,1]
+        y_pred_1_sigmoid = 1/(1 + np.exp(-model_1.decision_function(X_TEST)))
     else:
         y_pred_1 = np.c_[y_pred_1, model_1.predict_proba(X_TEST)[:,1]]               #Prediction
+        y_pred_1_sigmoid = np.c_[y_pred_1_sigmoid, 1/(1 + np.exp(-model_1.decision_function(X_TEST)))]
 
 ##Subtask 2: Setting up a model for sepsis
 model_2 = svm.SVC(kernel='linear', probability=True)
 model_2.fit(X_TRAIN, Y_LABELS_2)
 y_pred_2 = model_2.predict_proba(X_TEST)[:,1]                                   #Prediction
+y_pred_2_sigmoid = 1/(1 + np.exp(-model_2.decision_function(X_TEST)))
 
 ##Subtask 3: Setting up a model for mean of vital signs
 model_3 = RidgeCV(alphas=[1e-3, 1e-2, 1e-1, 1], cv=None)                        #None for Leave-One-Out cross-validation
