@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+#import argparse
 import sklearn.metrics as metrics
 
 VITALS = ['LABEL_RRate', 'LABEL_ABPm', 'LABEL_SpO2', 'LABEL_Heartrate']
@@ -19,11 +20,13 @@ def get_score(df_true, df_submission):
     return score
 
 
-filename = 'sample.zip'
-df_submission = pd.read_csv(filename)
+#filename = 'sample_' + str(patients) + '_' + str(bool(activation_number_of_tests)) + '_' + predicting_method + '_' + processing_method + '.zip'
+prediction_file = 'selective_5000_True_sigmoid_deterministic.zip'
+true_file = 'validation_labels.csv'
+df_submission = pd.read_csv(prediction_file)
 
 # generate a baseline based on sample.zip
-df_true = pd.read_csv(filename)
+df_true = pd.read_csv(true_file)                                                #take labels from pid 25067 (half of the dataset) to the end
 for label in TESTS + ['LABEL_Sepsis']:
     # round classification labels
     df_true[label] = np.around(df_true[label].values)

@@ -1,4 +1,9 @@
-patients: 50 
-activation_number_of_tests: 1 
+patients: 1500
+activation_ntest: 1
+activation_gradient: 1
+activation_shuffeling: 1
 predicting_method: 'sigmoid'
  processing_method: 'deterministic'
+selection_method: 'selective'
+magicfactor_testnumber: 0.8
+magicfactor_vitalgradient: 0.1
