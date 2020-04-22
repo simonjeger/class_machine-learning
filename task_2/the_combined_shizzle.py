@@ -38,7 +38,7 @@ def read_in_data():
     mean_global_train = train_features.mean()
     std_global_train = train_features.std()
 
-    test_features = pd.read_csv('../data_2/validation_features.csv', delimiter=',')
+    test_features = pd.read_csv('../data_2/test_features.csv', delimiter=',')
     test_features = test_features.replace('nan', np.NaN)
     mean_global_test = test_features.mean()
     std_global_test = test_features.std()
