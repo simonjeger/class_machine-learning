@@ -3,8 +3,8 @@ import pandas as pd
 import sklearn.metrics as metrics
 
 #Read in data to train step sizes
-magicfactor_testnumber = 0
-magicfactor_vitalgradient = 0
+mf_testnumber = 0.1
+mf_vitalgradient = 0
 
 
 VITALS = ['LABEL_RRate', 'LABEL_ABPm', 'LABEL_SpO2', 'LABEL_Heartrate']
@@ -25,16 +25,16 @@ def get_score(df_true, df_submission):
 
 def read_optimizing_data():
     ### Read in data
-    pid_test = pd.read_csv('temporary_predictions/pid_test.csv', delimiter=',')
-    y_1_real = pd.read_csv('temporary_predictions/y_1_real.csv', delimiter=',')
-    y_1_ntest = pd.read_csv('temporary_predictions/y_1_ntest.csv', delimiter=',')
-    y_1_gradient = pd.read_csv('temporary_predictions/y_1_gradient.csv', delimiter=',')
-    y_2_real = pd.read_csv('temporary_predictions/y_2_real.csv', delimiter=',')
-    y_2_ntest = pd.read_csv('temporary_predictions/y_2_ntest.csv', delimiter=',')
-    y_2_gradient = pd.read_csv('temporary_predictions/y_2_gradient.csv', delimiter=',')
-    y_3_real = pd.read_csv('temporary_predictions/y_3_real.csv', delimiter=',')
-    y_3_ntest = pd.read_csv('temporary_predictions/y_3_ntest.csv', delimiter=',')
-    y_3_gradient = pd.read_csv('temporary_predictions/y_3_gradient.csv', delimiter=',')
+    pid_test = pd.read_csv('temporary_predictions_2/pid_test.csv', delimiter=',')
+    y_1_real = pd.read_csv('temporary_predictions_2/y_1_real.csv', delimiter=',')
+    y_1_ntest = pd.read_csv('temporary_predictions_2/y_1_ntest.csv', delimiter=',')
+    y_1_gradient = pd.read_csv('temporary_predictions_2/y_1_gradient.csv', delimiter=',')
+    y_2_real = pd.read_csv('temporary_predictions_2/y_2_real.csv', delimiter=',')
+    y_2_ntest = pd.read_csv('temporary_predictions_2/y_2_ntest.csv', delimiter=',')
+    y_2_gradient = pd.read_csv('temporary_predictions_2/y_2_gradient.csv', delimiter=',')
+    y_3_real = pd.read_csv('temporary_predictions_2/y_3_real.csv', delimiter=',')
+    y_3_ntest = pd.read_csv('temporary_predictions_2/y_3_ntest.csv', delimiter=',')
+    y_3_gradient = pd.read_csv('temporary_predictions_2/y_3_gradient.csv', delimiter=',')
     return np.asarray(pid_test)[:,1], np.asarray(y_1_real)[:,1:], np.asarray(y_1_ntest)[:,1:], np.asarray(y_1_gradient)[:,1:], np.asarray(y_2_real)[:,1:], np.asarray(y_2_ntest)[:,1:], np.asarray(y_2_gradient)[:,1:], np.asarray(y_3_real)[:,1:], np.asarray(y_3_ntest)[:,1:], np.asarray(y_3_gradient)[:,1:]
     #return np.asarray(pid_test)[:,1], np.asarray(y_1_real)[:,1:], np.asarray(y_2_real)[:,1:], np.asarray(y_3_real)[:,1:]
 
@@ -43,12 +43,12 @@ def read_optimizing_data():
 
 
 #Moving steps towards ntest and gradient
-y_1 = np.add(y_1_real,magicfactor_testnumber*np.subtract(y_1_ntest,y_1_real))   #first step towards ntest
-y_2 = np.add(y_2_real,magicfactor_testnumber*np.subtract(y_2_ntest,y_2_real))
-y_3 = np.add(y_3_real,magicfactor_testnumber*np.subtract(y_3_ntest,y_3_real))
-y_1 = np.add(y_1, magicfactor_vitalgradient*np.subtract(y_1_gradient,y_1))      #second step towards gradient
-y_2 = np.add(y_2, magicfactor_vitalgradient*np.subtract(y_2_gradient,y_2))
-y_3 = np.add(y_3, magicfactor_vitalgradient*np.subtract(y_3_gradient,y_3))
+y_1 = np.add(y_1_real,mf_testnumber*np.subtract(y_1_ntest,y_1_real))   #first step towards ntest
+y_2 = np.add(y_2_real,mf_testnumber*np.subtract(y_2_ntest,y_2_real))
+y_3 = np.add(y_3_real,mf_testnumber*np.subtract(y_3_ntest,y_3_real))
+y_1 = np.add(y_1, mf_vitalgradient*np.subtract(y_1_gradient,y_1))      #second step towards gradient
+y_2 = np.add(y_2, mf_vitalgradient*np.subtract(y_2_gradient,y_2))
+y_3 = np.add(y_3, mf_vitalgradient*np.subtract(y_3_gradient,y_3))
 
 #Writing to .zip and .csv files
 M_submission = np.c_[pid_test, y_1, y_2, y_3]

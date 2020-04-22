@@ -104,7 +104,7 @@ def gradient(data_set_train, data_set_test):
 
     return np.asarray(X_gradient_train), np.asarray(X_gradient_test)
 
-def concatenate_deterministic(data_set_train, data_set_test, mean_global_train, std_global_train, mean_global_test, std_global_test):
+def concatenate_deterministicly(data_set_train, data_set_test, mean_global_train, std_global_train, mean_global_test, std_global_test):
     max_global_train = data_set_train.max()
     max_global_test = data_set_test.max()
     X_TRAIN, X_TEST = [], []
@@ -116,8 +116,8 @@ def concatenate_deterministic(data_set_train, data_set_test, mean_global_train, 
         for j in range(0, len(X_append)):
             if np.isnan(X_append[j]):
                 X_append[j] = mean_global_train[j]
-        if predicting_method == 'sigmoid':
-            X_append /= max_global_train                                            #scale with respect to mean --> avoid overflow of prediction function
+        #if predicting_method == 'sigmoid':
+        #    X_append /= max_global_train                                            #scale with respect to mean --> avoid overflow of prediction function
         X_TRAIN.append(list(X_append))
     #for data_set_test
     for i in range(0, int(data_set_test.shape[0]/12)):
@@ -127,12 +127,12 @@ def concatenate_deterministic(data_set_train, data_set_test, mean_global_train, 
         for j in range(0, len(X_append)):
             if np.isnan(X_append[j]):
                 X_append[j] = mean_global_test[j]
-        if predicting_method == 'sigmoid':
-            X_append /= max_global_test                                             #scale with respect to mean --> avoid overflow of prediction function
+        #if predicting_method == 'sigmoid':
+        #    X_append /= max_global_test                                             #scale with respect to mean --> avoid overflow of prediction function
         X_TEST.append(list(X_append))
     return np.asarray(X_TRAIN), np.asarray(X_TEST), np.asarray(pid_test)
 
-def concatenate_random(data_set_train, data_set_test, mean_global_train, std_global_train, mean_global_test, std_global_test):
+def concatenate_randomly(data_set_train, data_set_test, mean_global_train, std_global_train, mean_global_test, std_global_test):
     max_global_train = data_set_train.max()
     max_global_test = data_set_test.max()
     X_TRAIN, X_TEST = [], []
@@ -230,13 +230,13 @@ else:
 ### Concatenate and put in mean values according to deterministic or random
 print('Concatenate ' + processing_method + 'ly...')
 if processing_method == 'deterministic':
-    [X_TRAIN, X_TEST, pid_test] = concatenate_deterministic(train_features, test_features, mean_global_train, std_global_train, mean_global_test, std_global_test)#object array
+    [X_TRAIN, X_TEST, pid_test] = concatenate_deterministicly(train_features, test_features, mean_global_train, std_global_train, mean_global_test, std_global_test)#object array
 elif processing_method == 'random':
-    [X_TRAIN, X_TEST, pid_test] = concatenate_random(train_features, test_features, mean_global_train, std_global_train, mean_global_test, std_global_test)
+    [X_TRAIN, X_TEST, pid_test] = concatenate_randomly(train_features, test_features, mean_global_train, std_global_train, mean_global_test, std_global_test)
 
 ### Writing pid of test patients directly to csv files
 file_pid_test = pd.DataFrame(data=pid_test)
-file_pid_test.to_csv('temporary_predictions/pid_test.csv')
+file_pid_test.to_csv('temporary_predictions_2/pid_test.csv')
 
 ### Model data preparing
 print('Model data is being prepared...')
@@ -256,7 +256,7 @@ if predicting_method == 'sigmoid':
 elif predicting_method == 'probability':
     y_1_real = model_1_real.predict_proba(X_TEST_1)
 file_y_1_real = pd.DataFrame(data=y_1_real)
-file_y_1_real.to_csv('temporary_predictions/y_1_real.csv')
+file_y_1_real.to_csv('temporary_predictions_2/y_1_real.csv')
 del model_1_real
 
 if activation_ntest == True:
@@ -265,7 +265,7 @@ if activation_ntest == True:
     model_1_ntest.fit(X_count_train_1, Y_LABELS_1)
     y_1_ntest = 1/(1 + np.exp(-model_1_ntest.decision_function(X_count_test_1)))
     file_y_1_ntest = pd.DataFrame(data=y_1_ntest)
-    file_y_1_ntest.to_csv('temporary_predictions/y_1_ntest.csv')
+    file_y_1_ntest.to_csv('temporary_predictions_2/y_1_ntest.csv')
     del model_1_ntest
 
 if activation_gradient == True:
@@ -274,7 +274,7 @@ if activation_gradient == True:
     model_1_gradient.fit(X_gradient_train_1, Y_LABELS_1)
     y_1_gradient = 1/(1 + np.exp(-model_1_gradient.decision_function(X_gradient_test_1)))
     file_y_1_gradient = pd.DataFrame(data=y_1_gradient)
-    file_y_1_gradient.to_csv('temporary_predictions/y_1_gradient.csv')
+    file_y_1_gradient.to_csv('temporary_predictions_2/y_1_gradient.csv')
     del model_1_gradient
 
 print('model_2_real:')
@@ -285,7 +285,7 @@ if predicting_method == 'sigmoid':
 elif predicting_method == 'probability':
     y_2_real = model_2_real.predict_proba(X_TEST_2)[:,1]
 file_y_2_real = pd.DataFrame(data=y_2_real)
-file_y_2_real.to_csv('temporary_predictions/y_2_real.csv')
+file_y_2_real.to_csv('temporary_predictions_2/y_2_real.csv')
 del model_2_real
 
 if activation_ntest == True:
@@ -294,7 +294,7 @@ if activation_ntest == True:
     model_2_ntest.fit(X_count_train_2, Y_LABELS_2)
     y_2_ntest = 1/(1 + np.exp(-model_2_ntest.decision_function(X_count_test_2)))
     file_y_2_ntest = pd.DataFrame(data=y_2_ntest)
-    file_y_2_ntest.to_csv('temporary_predictions/y_2_ntest.csv')
+    file_y_2_ntest.to_csv('temporary_predictions_2/y_2_ntest.csv')
     del model_2_ntest
 
 if activation_gradient == True:
@@ -303,7 +303,7 @@ if activation_gradient == True:
     model_2_gradient.fit(X_gradient_train_2, Y_LABELS_2)
     y_2_gradient = 1/(1 + np.exp(-model_2_gradient.decision_function(X_gradient_test_2)))
     file_y_2_gradient = pd.DataFrame(data=y_2_gradient)
-    file_y_2_gradient.to_csv('temporary_predictions/y_2_gradient.csv')
+    file_y_2_gradient.to_csv('temporary_predictions_2/y_2_gradient.csv')
     del model_2_gradient
 
 print('model_3_real:')
@@ -311,7 +311,7 @@ model_3_real = RidgeCV(alphas=[1e-3, 1e-2, 1e-1, 1], cv=None)
 model_3_real.fit(X_TRAIN_3, Y_LABELS_3)
 y_3_real = model_3_real.predict(X_TEST_3)
 file_y_3_real = pd.DataFrame(data=y_3_real)
-file_y_3_real.to_csv('temporary_predictions/y_3_real.csv')
+file_y_3_real.to_csv('temporary_predictions_2/y_3_real.csv')
 del model_3_real
 
 if activation_ntest == True:
@@ -320,7 +320,7 @@ if activation_ntest == True:
     model_3_ntest.fit(X_count_train_3, Y_LABELS_3)
     y_3_ntest = model_3_ntest.predict(X_count_test_3)
     file_y_3_ntest = pd.DataFrame(data=y_3_ntest)
-    file_y_3_ntest.to_csv('temporary_predictions/y_3_ntest.csv')
+    file_y_3_ntest.to_csv('temporary_predictions_2/y_3_ntest.csv')
     del model_3_ntest
 
 if activation_gradient == True:
@@ -329,7 +329,7 @@ if activation_gradient == True:
     model_3_gradient.fit(X_gradient_train_3, Y_LABELS_3)
     y_3_gradient = model_3_gradient.predict(X_gradient_test_3)
     file_y_3_gradient = pd.DataFrame(data=y_3_gradient)
-    file_y_3_gradient.to_csv('temporary_predictions/y_3_gradient.csv')
+    file_y_3_gradient.to_csv('temporary_predictions_2/y_3_gradient.csv')
     del model_3_gradient
 
 print('---prediction files written---')
