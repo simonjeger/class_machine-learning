@@ -209,38 +209,25 @@ else:
 ### Model training
 print('---Started model training---')
 print('model_1:')
-y_1 = []
-for i in range(0,len(Y_LABELS_1[0])):
-    Y_LABELS_SINGLE = Y_LABELS_1[:,i]
-    model_1 = svm.SVC(kernel='linear', probability=True)
-    model_1.fit(X_TRAIN_1, Y_LABELS_SINGLE)
-    if predicting_method == 'sigmoid':
-        y = 1/(1 + np.exp(-model_1.decision_function(X_TEST_1)))
-        if i == 0:
-            y_1 = y
-        else:
-            y_1 = np.c_[y_1, y]
-    elif predicting_method == 'probability':
-        y = model_1.predict_proba(X_TEST_1)
-        if i == 0:
-            y_1 = y
-        else:
-            y_1 = np.c_[y_1, y]
-    del model_1
+model_1 = OneVsRestClassifier(svm.SVC(kernel='linear', probability=True))
+model_1.fit(X_TRAIN_1, Y_LABELS_1)
+print('predicting with ' + predicting_method + '...')
+if predicting_method == 'sigmoid':
+    y_1 = 1/(1 + np.exp(-model_1.decision_function(X_TEST_1)))
+elif predicting_method == 'probability':
+    y_1 = model_1.predict_proba(X_TEST_1)
 
 print('model_2:')
 model_2 = svm.SVC(kernel='linear', probability=True)
 model_2.fit(X_TRAIN_2, Y_LABELS_2)
-
-print('model_3:')
-model_3 = RidgeCV(alphas=[1e-3, 1e-2, 1e-1, 1], cv=None)
-model_3.fit(X_TRAIN_3, Y_LABELS_3)
-
-print('predicting with ' + predicting_method + '...')
 if predicting_method == 'sigmoid':
     y_2 = 1/(1 + np.exp(-model_2.decision_function(X_TEST_2)))
 elif predicting_method == 'probability':
     y_2 = model_2.predict_proba(X_TEST_2)[:,1]
+
+print('model_3:')
+model_3 = RidgeCV(alphas=[1e-3, 1e-2, 1e-1, 1], cv=None)
+model_3.fit(X_TRAIN_3, Y_LABELS_3)
 y_3 = model_3.predict(X_TEST_3)
 
 ### Writing to .zip and .csv files
