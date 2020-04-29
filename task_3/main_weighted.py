@@ -71,8 +71,15 @@ model_final.fit(train_mutant, train_labels)
 test_labels = np.sign(model_final.decision_function(test_mutant)-final_tau)
 test_labels = np.where(test_labels==-1.0, 0.0, test_labels)
 
-
 M_submission_pd = pd.DataFrame(data=test_labels)
 M_submission_pd.to_csv(r'sample.csv', index=False)
+
+
+info = []
+for index in score:
+    info.append(index)
+info.append(final_tau)
+information = pd.DataFrame(data=info)
+information.to_csv(r'info.csv', index=False)
 #compression_opts = dict(method='zip', archive_name='sample.csv')
 #M_submission_pd.to_csv('sample.zip', index=False, float_format='%.3f', compression=compression_opts)
