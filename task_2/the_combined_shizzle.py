@@ -204,7 +204,7 @@ if selection_method == 'selective':
     [X_TRAIN_1, X_TRAIN_2, X_TRAIN_3, X_TEST_1, X_TEST_2, X_TEST_3] = selective_training(X_TRAIN, X_TEST, X_count_train, X_count_test, X_gradient_train, X_gradient_test)
 else:
     print('Non-valid processing method!')
-
+print(X_TRAIN_1)
 
 ### Model training
 print('---Started model training---')

@@ -26,7 +26,7 @@ def add_features(X_lin):
     phi_11, phi_12, phi_13, phi_14, phi_15 = [], [], [], [], []                 #for exponential features
     phi_16, phi_17, phi_18, phi_19, phi_20 = [], [], [], [], []                 #for cosine features
     phi_21 = []                                                                 #for constant features
-
+    
 
     for row in X_lin:
         phi_6.append(row[0]**2)

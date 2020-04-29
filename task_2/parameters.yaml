@@ -1,6 +1,6 @@
 patients: 500
-activation_ntest: 1                                   #0 for off, 1 for column-wise counting, 2 for global counting
-activation_gradient: 1
+activation_ntest: 0                                   #0 for off, 1 for column-wise counting, 2 for global counting
+activation_gradient: 0
 predicting_method: 'sigmoid'
  processing_method: 'deterministic'
 selection_method: 'selective'
