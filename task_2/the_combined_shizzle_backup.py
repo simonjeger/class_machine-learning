@@ -25,8 +25,7 @@ activation_gradient = yaml_parameters['activation_gradient']                    
 predicting_method = yaml_parameters['predicting_method']                        #values: 'sigmoid' or 'probability'
 processing_method = yaml_parameters['processing_method']                        #values: 'deterministic' or 'random'
 state_quick_calc = yaml_parameters['state_quick_calc']
-activation_NN_1 = yaml_parameters['activation_NN_1']
-activation_NN_2 = yaml_parameters['activation_NN_2']
+activation_NN = yaml_parameters['activation_NN']
 
 def read_in_data():
     train_labels = pd.read_csv('../data_2/train_labels.csv', delimiter=',', nrows=patients)
@@ -45,6 +44,13 @@ def read_in_data():
     mean_global_test = test_features.mean()
     std_global_test = test_features.std()
     pid_test = test_features.iloc[::12,0]
+
+
+    #Normalize the data
+    #train_features = (train_features - mean_global_train)/std_global_train
+    #print(test_features)
+    #test_features = (test_features - mean_global_test)/std_global_test
+    #print(test_features)
 
     return np.asarray(pid_test), np.asarray(Y_LABELS_1), np.asarray(Y_LABELS_2), np.asarray(Y_LABELS_3), train_features, test_features, np.asarray(mean_global_train), np.asarray(std_global_train), np.asarray(mean_global_test), np.asarray(std_global_test)
 
@@ -140,22 +146,36 @@ def selective_training(X_TRAIN, X_TEST, X_count_train, X_count_test, X_gradient_
     X_TRAIN_1,X_TRAIN_2,X_TRAIN_3,X_TEST_1,X_TEST_2,X_TEST_3 = [],[],[],[],[],[]
     #for train data
     X_TRAIN_1 = np.c_[X_TRAIN[:,10], X_TRAIN[:,12], X_TRAIN[:,17], X_TRAIN[:,27], X_TRAIN[:,33], X_TRAIN[:,6], X_TRAIN[:,34], X_TRAIN[:,20], X_TRAIN[:,29], X_TRAIN[:,3]]
-    X_TRAIN_2 = X_TRAIN[:,2:]
-    #X_TRAIN_2 = np.c_[X_TRAIN[:,2], X_TRAIN[:,3], X_TRAIN[:,6], X_TRAIN[:,7], X_TRAIN[:,11], X_TRAIN[:,13], X_TRAIN[:,21], X_TRAIN[:,32], X_TRAIN[:,36]]
+    X_TRAIN_2 = X_TRAIN[:,2:36]
     X_TRAIN_3 = np.c_[X_TRAIN[:,9], X_TRAIN[:,22], X_TRAIN[:,28], X_TRAIN[:,32]]    #RRate, ABPm, SpO2, Heartrate
+    #if activation_ntest != 0:
+    #    X_TRAIN_1 = np.c_[X_TRAIN_1, X_count_train]
+    #    X_TRAIN_2 = np.c_[X_TRAIN_2, X_count_train]
     if activation_ntest == 1:
         X_TRAIN_1 = np.c_[X_TRAIN_1, X_count_train[:,10], X_count_train[:,12], X_count_train[:,17], X_count_train[:,27], X_count_train[:,33], X_count_train[:,6], X_count_train[:,34], X_count_train[:,20], X_count_train[:,29], X_count_train[:,3]]
-        X_TRAIN_2 = np.c_[X_TRAIN_2, X_count_train[:,2:]]
-        #X_TRAIN_2 = np.c_[X_TRAIN_2, X_count_train[:,2], X_count_train[:,6], X_count_train[:,7], X_count_train[:,11], X_count_train[:,13], X_count_train[:,21], X_count_train[:,32], X_count_train[:,36]]
+        #X_TRAIN_3 = np.c_[X_TRAIN_3, X_count_train[:,6], X_count_train[:,19], X_count_train[:,25], X_count_train[:,29]]
+    #if activation_ntest == 2:
+    #    X_TRAIN_3 = np.c_[X_TRAIN_3, X_count_train]
+    if activation_gradient == 1:
+        #X_TRAIN_1 = np.c_[X_TRAIN_1, X_gradient_train]
+        #X_TRAIN_2 = np.c_[X_TRAIN_2, X_gradient_train]
+        X_TRAIN_3 = np.c_[X_TRAIN_3, X_gradient_train[:,6], X_gradient_train[:,19], X_gradient_train[:,25], X_gradient_train[:,29]]
+
     #for test data
     X_TEST_1 = np.c_[X_TEST[:,10], X_TEST[:,12], X_TEST[:,17], X_TEST[:,27], X_TEST[:,33], X_TEST[:,6], X_TEST[:,34], X_TEST[:,20], X_TEST[:,29], X_TEST[:,3]]
-    X_TEST_2 = X_TEST[:,2:]
-    #X_TEST_2 = np.c_[X_TEST[:,2], X_TEST[:,3], X_TEST[:,6], X_TEST[:,7], X_TEST[:,11], X_TEST[:,13], X_TEST[:,21], X_TEST[:,32], X_TEST[:,36]]
+    X_TEST_2 = X_TEST[:,2:36]
     X_TEST_3 = np.c_[X_TEST[:,9], X_TEST[:,22], X_TEST[:,28], X_TEST[:,32]]     #RRate, ABPm, SpO2, Heartrate
+    #if activation_ntest != 0:
+    #    X_TEST_1 = np.c_[X_TEST_1, X_count_test]
+    #    X_TEST_2 = np.c_[X_TEST_2, X_count_test]
     if activation_ntest == 1:
         X_TEST_1 = np.c_[X_TEST_1, X_count_test[:,10], X_count_test[:,12], X_count_test[:,17], X_count_test[:,27], X_count_test[:,33], X_count_test[:,6], X_count_test[:,34], X_count_test[:,20], X_count_test[:,29], X_count_test[:,3]]
-        X_TEST_2 = np.c_[X_TEST_2, X_count_test[:,2:]]
-        #X_TEST_2 = np.c_[X_TEST_2, X_count_test[:,2], X_count_test[:,6], X_count_test[:,7], X_count_test[:,11], X_count_test[:,13], X_count_test[:,21], X_count_test[:,32], X_count_test[:,36]]
+    #if activation_ntest == 2:
+    #    X_TEST_3 = np.c_[X_TEST_3, X_count_test]
+    if activation_gradient == 1:
+        #X_TEST_1 = np.c_[X_TEST_1, X_gradient_test]
+        #X_TEST_2 = np.c_[X_TEST_2, X_gradient_test]
+        X_TEST_3 = np.c_[X_TEST_3, X_gradient_test[:,6], X_gradient_test[:,19], X_gradient_test[:,25], X_gradient_test[:,29]]
 
     return np.asarray(X_TRAIN_1), np.asarray(X_TRAIN_2), np.asarray(X_TRAIN_3), np.asarray(X_TEST_1), np.asarray(X_TEST_2), np.asarray(X_TEST_3)
 
@@ -165,7 +185,7 @@ def selective_training(X_TRAIN, X_TEST, X_count_train, X_count_test, X_gradient_
 [pid_test, Y_LABELS_1, Y_LABELS_2, Y_LABELS_3, train_features, test_features, mean_global_train, std_global_train, mean_global_test, std_global_test] = read_in_data()
 
 ### Determine a dataset that contains the number of tests made
-if activation_ntest == 1:
+if activation_ntest != 0:
     print('Compute ntest matrix...')
     [X_count_train, X_count_test] = count_values(train_features, test_features)
 else:
@@ -200,8 +220,8 @@ print('Model data is being prepared...')
 
 print('---Started model training---')
 print('model_1:')
-if activation_NN_1 == True:
-    y_1 = NN.neural_network(1, X_TRAIN_1, Y_LABELS_1, X_TEST_1, 10)
+if activation_NN == True:
+    y_1 = NN.neural_network(X_TRAIN_1, Y_LABELS_1, X_TEST_1)
 else:
     model_1 = OneVsRestClassifier(svm.SVC(kernel='linear', probability=True))
     model_1.fit(X_TRAIN_1, Y_LABELS_1)
@@ -211,15 +231,12 @@ else:
         y_1 = model_1.predict_proba(X_TEST_1)
 
 print('model_2:')
-if activation_NN_2 == True:
-    y_2 = NN.neural_network(2, X_TRAIN_2, Y_LABELS_2, X_TEST_2, 1)
-else:
-    model_2 = svm.SVC(kernel='linear', probability=True)
-    model_2.fit(X_TRAIN_2, Y_LABELS_2)
-    if predicting_method == 'sigmoid':
-        y_2 = 1/(1 + np.exp(-model_2.decision_function(X_TEST_2)))
-    elif predicting_method == 'probability':
-        y_2 = model_2.predict_proba(X_TEST_2)[:,1]
+model_2 = svm.SVC(kernel='linear', probability=True)
+model_2.fit(X_TRAIN_2, Y_LABELS_2)
+if predicting_method == 'sigmoid':
+    y_2 = 1/(1 + np.exp(-model_2.decision_function(X_TEST_2)))
+elif predicting_method == 'probability':
+    y_2 = model_2.predict_proba(X_TEST_2)[:,1]
 
 print('model_3:')
 model_3 = RidgeCV(alphas=[1e-3, 1e-2, 1e-1, 1], cv=None)

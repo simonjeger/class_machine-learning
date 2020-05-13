@@ -21,7 +21,7 @@ def get_score(df_true, df_submission):
 
 
 #filename = 'sample_' + str(patients) + '_' + str(bool(activation_number_of_tests)) + '_' + predicting_method + '_' + processing_method + '.zip'
-prediction_file = 'selective_5000_True_sigmoid_deterministic.zip'
+prediction_file = 'sample_600_1_0_probability.csv'
 true_file = 'validation_labels.csv'
 df_submission = pd.read_csv(prediction_file)
 

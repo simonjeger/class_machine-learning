@@ -1,8 +1,8 @@
-patients: 500
-activation_ntest: 0                                   #0 for off, 1 for column-wise counting, 2 for global counting
+patients: 600
+activation_ntest: 1                                   #0 for off, 1 for column-wise counting, 2 for global counting
 activation_gradient: 0
-predicting_method: 'sigmoid'
+predicting_method: 'probability'
  processing_method: 'deterministic'
-selection_method: 'selective'
-magicfactor_testnumber: 0.8
-magicfactor_vitalgradient: 0.1
+state_quick_calc: False
+activation_NN_1: True
+activation_NN_2: False
