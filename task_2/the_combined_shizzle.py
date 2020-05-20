@@ -27,6 +27,7 @@ processing_method = yaml_parameters['processing_method']                        
 state_quick_calc = yaml_parameters['state_quick_calc']
 activation_NN_1 = yaml_parameters['activation_NN_1']
 activation_NN_2 = yaml_parameters['activation_NN_2']
+activation_NN_3 = yaml_parameters['activation_NN_3']
 
 def read_in_data():
     train_labels = pd.read_csv('../data_2/train_labels.csv', delimiter=',', nrows=patients)
@@ -40,7 +41,7 @@ def read_in_data():
     mean_global_train = train_features.mean()
     std_global_train = train_features.std()
 
-    test_features = pd.read_csv('../data_2/validation_features.csv', delimiter=',')
+    test_features = pd.read_csv('../data_2/test_features.csv', delimiter=',')
     test_features = test_features.replace('nan', np.NaN)
     mean_global_test = test_features.mean()
     std_global_test = test_features.std()
@@ -145,7 +146,7 @@ def selective_training(X_TRAIN, X_TEST, X_count_train, X_count_test, X_gradient_
     X_TRAIN_3 = np.c_[X_TRAIN[:,9], X_TRAIN[:,22], X_TRAIN[:,28], X_TRAIN[:,32]]    #RRate, ABPm, SpO2, Heartrate
     if activation_ntest == 1:
         X_TRAIN_1 = np.c_[X_TRAIN_1, X_count_train[:,10], X_count_train[:,12], X_count_train[:,17], X_count_train[:,27], X_count_train[:,33], X_count_train[:,6], X_count_train[:,34], X_count_train[:,20], X_count_train[:,29], X_count_train[:,3]]
-        X_TRAIN_2 = np.c_[X_TRAIN_2, X_count_train[:,2:]]
+        #X_TRAIN_2 = np.c_[X_TRAIN_2, X_count_train[:,2:]]
         #X_TRAIN_2 = np.c_[X_TRAIN_2, X_count_train[:,2], X_count_train[:,6], X_count_train[:,7], X_count_train[:,11], X_count_train[:,13], X_count_train[:,21], X_count_train[:,32], X_count_train[:,36]]
     #for test data
     X_TEST_1 = np.c_[X_TEST[:,10], X_TEST[:,12], X_TEST[:,17], X_TEST[:,27], X_TEST[:,33], X_TEST[:,6], X_TEST[:,34], X_TEST[:,20], X_TEST[:,29], X_TEST[:,3]]
@@ -154,7 +155,7 @@ def selective_training(X_TRAIN, X_TEST, X_count_train, X_count_test, X_gradient_
     X_TEST_3 = np.c_[X_TEST[:,9], X_TEST[:,22], X_TEST[:,28], X_TEST[:,32]]     #RRate, ABPm, SpO2, Heartrate
     if activation_ntest == 1:
         X_TEST_1 = np.c_[X_TEST_1, X_count_test[:,10], X_count_test[:,12], X_count_test[:,17], X_count_test[:,27], X_count_test[:,33], X_count_test[:,6], X_count_test[:,34], X_count_test[:,20], X_count_test[:,29], X_count_test[:,3]]
-        X_TEST_2 = np.c_[X_TEST_2, X_count_test[:,2:]]
+        #X_TEST_2 = np.c_[X_TEST_2, X_count_test[:,2:]]
         #X_TEST_2 = np.c_[X_TEST_2, X_count_test[:,2], X_count_test[:,6], X_count_test[:,7], X_count_test[:,11], X_count_test[:,13], X_count_test[:,21], X_count_test[:,32], X_count_test[:,36]]
 
     return np.asarray(X_TRAIN_1), np.asarray(X_TRAIN_2), np.asarray(X_TRAIN_3), np.asarray(X_TEST_1), np.asarray(X_TEST_2), np.asarray(X_TEST_3)
@@ -192,7 +193,6 @@ if state_quick_calc == False:
 else:
     X_TRAIN = np.asarray(pd.read_csv("../data_2/patient_data_train_prep.csv", header=None))             #Read in previously generated data
     X_TEST = np.asarray(pd.read_csv("../data_2/patient_data_test_prep.csv", header=None))
-    print(pd.read_csv("../data_2/patient_data_test_prep.csv", header=None))
 
 ### Model data preparing
 print('Model data is being prepared...')
@@ -201,7 +201,7 @@ print('Model data is being prepared...')
 print('---Started model training---')
 print('model_1:')
 if activation_NN_1 == True:
-    y_1 = NN.neural_network(1, X_TRAIN_1, Y_LABELS_1, X_TEST_1, 10)
+    y_1 = NN.neural_network_1(X_TRAIN_1, Y_LABELS_1, X_TEST_1)
 else:
     model_1 = OneVsRestClassifier(svm.SVC(kernel='linear', probability=True))
     model_1.fit(X_TRAIN_1, Y_LABELS_1)
@@ -212,19 +212,23 @@ else:
 
 print('model_2:')
 if activation_NN_2 == True:
-    y_2 = NN.neural_network(2, X_TRAIN_2, Y_LABELS_2, X_TEST_2, 1)
+    y_2 = NN.neural_network_2(X_TRAIN_2, Y_LABELS_2, X_TEST_2)
 else:
     model_2 = svm.SVC(kernel='linear', probability=True)
     model_2.fit(X_TRAIN_2, Y_LABELS_2)
     if predicting_method == 'sigmoid':
         y_2 = 1/(1 + np.exp(-model_2.decision_function(X_TEST_2)))
     elif predicting_method == 'probability':
-        y_2 = model_2.predict_proba(X_TEST_2)[:,1]
+        #y_2 = model_2.predict_proba(X_TEST_2)[:,1]
+        y_2 = model_2.predict(X_TEST_2)
 
 print('model_3:')
-model_3 = RidgeCV(alphas=[1e-3, 1e-2, 1e-1, 1], cv=None)
-model_3.fit(X_TRAIN_3, Y_LABELS_3)
-y_3 = model_3.predict(X_TEST_3)
+if activation_NN_3 == True:
+    y_3 = NN.neural_network_3(X_TRAIN_3, Y_LABELS_3, X_TEST_3)
+else:
+    model_3 = RidgeCV(alphas=[1e-3, 1e-2, 1e-1, 1], cv=None)
+    model_3.fit(X_TRAIN_3, Y_LABELS_3)
+    y_3 = model_3.predict(X_TEST_3)
 
 ### Writing to .zip and .csv files
 M_submission = np.c_[pid_test, y_1, y_2, y_3]

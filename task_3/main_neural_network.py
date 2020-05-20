@@ -76,11 +76,11 @@ class_weights = dict(enumerate(class_weights))
 #Final model with the optimal threshold value determined before
 model = tf.keras.models.Sequential()
 model.add(tf.keras.layers.Flatten(input_shape=(4,)))
-model.add(tf.keras.layers.Dense(3264, activation='relu'))
-#model.add(tf.keras.layers.BatchNormalization())
+model.add(tf.keras.layers.Dense(190, activation='sigmoid'))
+model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.Dropout(0.5))
-model.add(tf.keras.layers.Dense(13, activation='relu'))
-#model.add(tf.keras.layers.BatchNormalization())
+model.add(tf.keras.layers.Dense(95, activation='sigmoid'))
+model.add(tf.keras.layers.BatchNormalization())
 model.add(tf.keras.layers.Dropout(0.5))
 model.add(tf.keras.layers.Dense(1, activation='sigmoid'))
 model.summary()
@@ -89,7 +89,7 @@ model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy']
 
 metrics = Metrics(X_val,y_val)
 
-model.fit(X_train, y_train, epochs=20, callbacks=[metrics], verbose=1,class_weight=class_weights)
+model.fit(X_train, y_train, batch_size=32, epochs=15, callbacks=[metrics], verbose=1,class_weight=class_weights)
 
 test_mutant = normalize(test_mutant, axis=1)
 test_labels = model.predict_classes(test_mutant)
