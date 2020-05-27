@@ -1,1 +1,5 @@
 data_4
+task_4/test_matrix.csv
+task_4/train_matrix.csv
+task_4/train_labels.csv
+task_4/test.py
