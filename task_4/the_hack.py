@@ -2,26 +2,23 @@ import numpy as np
 import pandas as pd
 
 activation_hack_training_data = False                                           #decide whether new training data should be estimated according to most frequent predictions
+n_submission_files = 20
+submission_file_name = [5, 19, 0, 4, 9, 17, 18, 11, 7]
 
 def read_submission_data():
-    submission_1 = pd.read_csv('old_submissions/submission_1.csv', header=None)
-    submission_2 = pd.read_csv('old_submissions/submission_2.csv', header=None)
-    submission_3 = pd.read_csv('old_submissions/submission_3.csv', header=None)
-    submission_4 = pd.read_csv('old_submissions/submission_4.csv', header=None)
-    submission_5 = pd.read_csv('old_submissions/submission_5.csv', header=None)
-    submission_6 = pd.read_csv('old_submissions/submission_6.csv', header=None)
-    submission_7 = pd.read_csv('old_submissions/submission_7.csv', header=None)
-    submission_8 = pd.read_csv('old_submissions/submission_8.csv', header=None)
-    submission_9 = pd.read_csv('old_submissions/submission_9.csv', header=None)
-
-    submission_total = pd.concat([submission_1, submission_2, submission_3, submission_4, submission_5, submission_6, submission_7, submission_8, submission_9], axis=1)
-
+    for i in submission_file_name:
+        name = 'submission_' + str(i) + '.csv'
+        new_submission_file = pd.read_csv('submission_files/' + name, header=None)
+        if submission_file_name.index(i)==0:
+            submission_total = pd.DataFrame(data=new_submission_file)
+        else:
+            submission_total = pd.concat([submission_total, new_submission_file], axis=1)
     return submission_total
 
 #--------------------------------MAIN-------------------------------------------
 #READ DATA OF ALL SINGLE SUBMISSION FILES
 submission_total = read_submission_data()
-
+print(submission_total)
 #CALCULATE THE ROW-WISE SUM OF THE SUBMISSION MATRIX
 y_sum = submission_total.sum(axis=1)
 
@@ -45,7 +42,7 @@ for i in range(len(y_sum)):
 
 #CREATE THE FINAL PREDICTION FILE
 M_submission_pd = pd.DataFrame(data=y_prediction)
-M_submission_pd.to_csv(r'old_submissions/submission_hack.csv', index=False, header=False)
+M_submission_pd.to_csv(r'submission_hack.csv', index=False, header=False)
 
 
 if activation_hack_training_data:

@@ -1,1 +1,8 @@
 data_4
+task_4/test_matrix.csv
+task_4/train_matrix.csv
+task_4/train_labels.csv
+task_4/predictions_10.csv
+task_4/predictions_20.csv
+task_4/stuff.py
+task_4/VGG16.h5

@@ -1,4 +1,6 @@
 import numpy as np
+from numpy.random import seed
+from sklearn.utils import shuffle
 import pandas as pd
 import yaml                                                                     #for reading running parameters from external yaml file (Euler)
 import argparse
@@ -17,14 +19,29 @@ from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.layers import BatchNormalization
 from tensorflow.keras.utils import normalize, to_categorical
 
+### PARAMETERS TO CHANGE
+activation_seeding = True                                                      #make sure to set this to True while training hyperparams
+considered_n_predictions = 20                                                   #sets how many of the first predictions should be kept
+activation_image_prediction = False                                             #producing the file 'predictions.csv' (ca. 25mins)
+validation_samples = 0
 
-considered_n_predictions = 20
-activation_image_prediction = False
-considered_n_classes = 0
+considered_n_classes = 0                                                        #number of classes where their indices are put to 1.0 in the trainig data
 considered_n_probabilities = 20
-activation_train_test_data = True
+activation_train_data = False                                                   #train and test matrix are being built if set to TRUE
+activation_test_data = False
 model_type = 'neural'                                                           #either 'neural' or 'svm'
-activation_hack_train_data = False
+
+### FOR CHOOSING THE RIGHT HYPERPARAMS
+activation_hyperparam = True                                                    #my_test_data is being read in
+hypertraining_iterations = 1
+hyperarr_epochs = [30]                                                          #old sets: [20, 25, 30, 35, 40, 45, 50, 55, 60] --> [20, 30, 40, 50, 60] --> [30, 40, 50, 60]
+hyperarr_batchsize = [32]                                  #old sets: [5, 10, 20, 32, 32, 40, 50, 75, 100] --> [5, 10, 20, 32, 32, 40, 50, 75, 100] --> [20, 32, 40, 50, 75, 100]
+hyperarr_n_layers = [2]                                                #old sets: [1, 2, 3, 4, 5, 6, 7, 8] --> [1, 2, 3, 4, 5] --> [1, 2, 3, 4]
+hyperarr_start_density = [300]                                        #old sets: [100, 200, 300, 400, 500] --> [200, 300, 400, 500] --> [200, 300, 400, 500]
+hyperarr_dropout = [0.1]                                                   #old sets: [0.1, 0.5, 0.9] --> [0.1, 0.3, 0.5] --> [0.1, 0.2, 0.3]
+
+activation_hack_train_data = False                                              #to include most certain predictions as new training data (approx. 30'000/59'500 triplets)
+unseeded_submission_iterations = 1                                              #creating different submissions files for 'the_hack.py' --> set 'activation_seeding' to False
 
 def predict_image_data(number_pictures):
     model = VGG16()
@@ -60,14 +77,14 @@ def predict_image_data(number_pictures):
     return
 
 def read_class_data():
-    #load predictions
+    ### LOAD PREDICTIONS
     predictions = pd.read_csv('predictions_20.csv', delimiter=',')
     image_number = predictions.iloc[:,0]
     image_number = image_number.map(lambda x: f'{x:0>5}')                       #append zeros in the front
     image_class = predictions.iloc[:,1:(considered_n_predictions+1)]
     image_probabilities = predictions.iloc[:,(considered_n_predictions+1):(2*considered_n_predictions+1)]
 
-    #load train data
+    ### LOAD TRAIN DATA
     train_triplets_plain = pd.read_csv('../data_4/train_triplets.txt', delimiter=' ', header=None)
     if activation_hack_train_data:
         hack_train_triplets = pd.read_csv('../data_4/hack_train_triplets.txt', delimiter=',', header=None)
@@ -75,8 +92,14 @@ def read_class_data():
     else:
         train_triplets = train_triplets_plain
 
-    #load test data
-    test_triplets = pd.read_csv('../data_4/test_triplets.txt', delimiter=' ', header=None)
+    ### LOAD TEST DATA
+    if activation_hyperparam:
+        test_triplets = pd.read_csv('../data_4/test_triplets.txt', delimiter=' ', header=None)     #initial test set for uploading submissions
+        #test_triplets_true = pd.read_csv('../data_4/my_triplets_truelabel.txt', delimiter=' ', header=None, nrows=500)
+        #test_triplets_false = pd.read_csv('../data_4/my_triplets_falselabel.txt', delimiter=',', header=None, nrows=500)
+        #test_triplets = pd.concat([test_triplets_false, test_triplets_false]).reset_index(drop=True)
+    else:
+        test_triplets = pd.read_csv('../data_4/test_triplets.txt', delimiter=' ', header=None)     #initial test set for uploading submissions
 
     return image_number, image_class, image_probabilities, train_triplets, test_triplets
 
@@ -90,7 +113,6 @@ def create_class_array(image_class):
     return class_array, len(class_array)
 
 def create_data_point(triplets, i, triplets_column, image_class, image_probabilities, class_array):
-    X = []
     if triplets_column == 'B':
         triplets_column_second = 1
     else:
@@ -128,8 +150,8 @@ def create_train_data(train_triplets, image_class, image_probabilities, class_ar
     X_TRAIN = []
     Y_LABELS = []
     for i in range(len(train_triplets)):
-    #for i in range(1):                                                          #for debugging purposes
-        #print('train', i)                                                       #progress bar if the waiting takes too long:)
+    #for i in range(58514):                                                          #for debugging purposes
+        print('train', i)                                                       #progress bar if the waiting takes too long:)
         X = create_data_point(train_triplets, i, 'B', image_class, image_probabilities, class_array)
         X_TRAIN.append(X)
         Y_LABELS.append(1)
@@ -146,11 +168,10 @@ def create_train_data(train_triplets, image_class, image_probabilities, class_ar
 def create_test_data(test_triplets, image_class, image_probabilities, class_array):
     X_TEST = []
     for i in range(len(test_triplets)):
-    #for i in range(1):                                                          #for debugging purposes
-        #print('test', i)                                                        #progress bar if the waiting takes too long:)
+    #for i in range(1000):                                                       #for debugging purposes
+        print('test', i)                                                        #progress bar if the waiting takes too long:)
         X = create_data_point(test_triplets, i, 'B', image_class, image_probabilities, class_array)
         X_TEST.append(X)
-
         X = create_data_point(test_triplets, i, 'C', image_class, image_probabilities, class_array)
         X_TEST.append(X)
     M_TEST_pd = pd.DataFrame(data=X_TEST)
@@ -162,17 +183,47 @@ def read_model_data():
     Y_LABELS = pd.read_csv('train_labels.csv', delimiter=',')
     Y_LABELS = Y_LABELS.iloc[:,0]
     X_TEST = pd.read_csv('test_matrix.csv', delimiter=',')
-    return np.asarray(X_TRAIN), np.asarray(Y_LABELS), np.asarray(X_TEST)
+    #shuffeling
+    [X_TRAIN, Y_LABELS] = shuffle(X_TRAIN, Y_LABELS)
+    X_TRAIN = X_TRAIN[0:(len(X_TRAIN)-validation_samples)][:]
+    X_VALIDATION = X_TRAIN[(len(X_TRAIN)-validation_samples):][:]
+    Y_LABELS = Y_LABELS[0:(len(Y_LABELS)-validation_samples)]
+    Y_VALIDATION = Y_LABELS[(len(Y_LABELS)-validation_samples):]
 
+    return np.asarray(X_TRAIN), np.asarray(X_VALIDATION), np.asarray(Y_LABELS), np.asarray(Y_VALIDATION), np.asarray(X_TEST)
 
-#--------------------------------MAIN-------------------------------------------
-#PREDICT THE FIRST 'CONSIDERED_N_PREDICTIONS' CLASSES AND THE CORRESPONDING PROBABILITIES
+def choosing_label(y_doubled):
+    y_pred = []
+    for i in range(int(len(y_doubled)/2)):
+        if y_doubled[2*i] > y_doubled[2*i+1]:
+            y_pred.append(1)
+        else:
+            y_pred.append(0)
+    return y_pred
+
+def choosing_labels_wisely(y_doubled):
+    y_pred = []
+    for i in range(len(y_doubled)):
+        if y_doubled[i] > 0.5:
+            y_pred.append(1)
+        else:
+            y_pred.append(0)
+    return y_pred
+
+#------------------------------  MAIN  -----------------------------------------
+### SEEDING THE NUMPY RANDOM GENERATOR AND THE TENSORFLOW RANDOM GENERATOR
+if activation_seeding == True:
+    seed(1)
+    tf.random.set_seed(3)
+
+### PREDICT THE FIRST 'CONSIDERED_N_PREDICTIONS' CLASSES AND THE CORRESPONDING PROBABILITIES
 if activation_image_prediction:
     number_pictures = 10000
     print('Predicting image classes and image probabilities...')
-    predict_image_data(number_pictures)                                                #create file 'predictions.csv'
+    predict_image_data(number_pictures)
 
-if activation_train_test_data:
+### PREPARE FOR GENERATING TRAIN AND TEST DATA
+if activation_train_data or activation_test_data:
     #read in the class data from the predictions.csv
     print('Reading class data...')
     [image_number, image_class, image_probabilities, train_triplets, test_triplets] = read_class_data()
@@ -180,51 +231,127 @@ if activation_train_test_data:
     #create an array that contains every predicted class only once
     print('Creating class array...')
     [class_array, n_different_labels] = create_class_array(image_class)
-
+### BUILDING UP THE WHOLE TRAIN DATA
+if activation_train_data:
     #CREATE TWO DATA POINTS FOR EACH ROW IN 'train_triplets.csv'
     print('Preprocessing training data...')
     create_train_data(train_triplets, image_class, image_probabilities, class_array)
-
+### BUILDING UP THE WHOLE TEST DATA
+if activation_test_data:
     #CREATE TWO DATA POINTS FOR EACH ROW IN 'test_triplets.csv'
     print('Preprocessing testing data...')
     create_test_data(test_triplets, image_class, image_probabilities, class_array)
 
-if model_type == 'svm':
-    [X_TRAIN, Y_LABELS, X_TEST] = read_model_data()
+### READ IN DATA FOR MODEL TRAINING
+[X_TRAIN, X_VALIDATION, Y_LABELS, Y_VALIDATION, X_TEST] = read_model_data()
 
+### SETUP A SIMPLE SUPPORT VECTORE MACHINE
+if model_type == 'svm':
     print('Started training svm-model...')
     prediction_model = svm.SVC(kernel='linear', probability=True)
     prediction_model.fit(X_TRAIN, Y_LABELS)
     y_doubled = prediction_model.predict_proba(X_TEST)[:,1]
+
+    y_pred = choosing_label(y_doubled)
+
+    ### WRITING SOLUTION TO SUBMISSION .CSV-FILE
+    M_submission_pd = pd.DataFrame(data=y_pred)
+    M_submission_pd.to_csv(r'old_submissions/submission.csv', index=False, header=False)
+
+### SETUP NEURAL NETWORK FOR TUNING THE HYPERPARAMS
+if model_type == 'neural' and activation_hyperparam:
+    tuning_params = []
+    y_doubled = []
+    for n in range(hypertraining_iterations):
+        print('Building up structure of NN...')
+
+        ### SETTING RANDOM HYPERPARAMETERS
+        hyperparam_epochs = hyperarr_epochs[np.random.randint(0,len(hyperarr_epochs))]
+        hyperparam_batchsize = hyperarr_batchsize[np.random.randint(0,len(hyperarr_batchsize))]
+        hyperparam_n_layers = hyperarr_n_layers[np.random.randint(0,len(hyperarr_n_layers))]
+        hyperparam_start_density = hyperarr_start_density[np.random.randint(0,len(hyperarr_start_density))]
+        hyperparam_dropout = hyperarr_dropout[np.random.randint(0,len(hyperarr_dropout))]
+
+        ### BUILDING NEURAL NETWORK ACCORDING TO HYPERPARAMETERS
+        prediction_model = tf.keras.models.Sequential()
+        prediction_model.add(tf.keras.layers.Flatten(input_shape=(len(X_TRAIN[0]),)))
+        for n_layers in range(hyperparam_n_layers):
+            prediction_model.add(tf.keras.layers.Dense(int(hyperparam_start_density/np.power(2,n_layers)), activation='relu'))
+            #prediction_model.add(tf.keras.layers.BatchNormalization())
+            prediction_model.add(tf.keras.layers.Dropout(hyperparam_dropout))
+        prediction_model.add(tf.keras.layers.Dense(1, activation='relu'))
+        prediction_model.summary()
+        prediction_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+        ### TRAINING THE BUILT MODEL
+        print('Started training neural network...')
+        prediction_model.fit(X_TRAIN, Y_LABELS, batch_size=hyperparam_batchsize, epochs=hyperparam_epochs, verbose=1)
+        y_doubled = prediction_model.predict(X_TEST)
+        """print('y_doubled')
+        print(y_doubled)
+        print(len(y_doubled))
+        print('Y_VALIDATION')
+        print(Y_VALIDATION)
+        print(len(Y_VALIDATION))"""
+        del prediction_model
+
+        ### CHOOSE LABEL ACCORDING TO FIRST OR SECOND PROBABILITY BEING HIGHER
+        y_pred = choosing_label(y_doubled)
+        #y_pred = choosing_labels_wisely(y_doubled)
+        """print('y_pred')
+        print(y_pred)
+        print(len(y_pred))
+        print('accuracy is ')
+        accuracy_array = []
+        for i_acc in range(len(y_pred)):
+            if y_pred[i_acc]==Y_VALIDATION[i_acc]:
+                accuracy_array.append(1)
+            else:
+                accuracy_array.append(0)
+        print(np.count_nonzero(accuracy_array))"""
+
+
+        ### WRITING SOLUTION TO SUBMISSION .CSV-FILE
+        M_submission_pd = pd.DataFrame(data=y_pred)
+        M_submission_pd.to_csv(r'submission_new_' + str(n) + '.csv', index=False, header=False)
+
+        ### DEFINE ACCURACY OF BOTH CERTAIN TRUE AND CERTAIN FALSE LABELS AND APPEND THE APPLIED HYPERPARAMETERS TO SETTINGS
+        """y_accuracy_false = int(len(y_pred)/2) - np.count_nonzero(y_pred[0:int(len(y_pred)/2)])
+        y_accuracy_true = int(len(y_pred)/2) - np.count_nonzero(y_pred[int(len(y_pred)/2):len(y_pred)])
+        y_accuracy = y_accuracy_true + y_accuracy_false"""
+        tuning_params.append([hyperparam_epochs, hyperparam_batchsize, hyperparam_n_layers, hyperparam_start_density, hyperparam_dropout])
+        print(tuning_params)
+
+    ### WRITING PARAMETERS TO FILE 'hyperparam_settings.csv'
+    M_hyperparam_settings = pd.DataFrame(data=tuning_params, columns=["epochs", "batch_size", "n_layers_NN", "start_density", "dropout"])
+    M_hyperparam_settings.to_csv(r'hyperparam_settings.csv', index=False)
+
+
+### SETUP NEURAL NETWORK FOR SIMPLE TESTING
 elif model_type == 'neural':
-    [X_TRAIN, Y_LABELS, X_TEST] = read_model_data()
+    for m in range(unseeded_submission_iterations):
+        ### BUILDING NEURAL NETWORK ACCORDING TO HYPERPARAMETERS
+        print('Building up structure of NN...')
+        prediction_model = tf.keras.models.Sequential()
+        prediction_model.add(tf.keras.layers.Flatten(input_shape=(len(X_TRAIN[0]),)))
+        prediction_model.add(tf.keras.layers.Dense(600, activation='relu'))
+        prediction_model.add(tf.keras.layers.Dropout(0.1))
+        prediction_model.add(tf.keras.layers.Dense(300, activation='relu'))
+        prediction_model.add(tf.keras.layers.Dropout(0.1))
+        prediction_model.add(tf.keras.layers.Dense(150, activation='relu'))
+        prediction_model.add(tf.keras.layers.Dropout(0.1))
+        prediction_model.add(tf.keras.layers.Dense(1, activation='relu'))
+        prediction_model.summary()
+        prediction_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+        print('Started training neural network...')
+        prediction_model.fit(X_TRAIN, Y_LABELS, batch_size=32, epochs=50, verbose=1)
+        y_doubled = prediction_model.predict(X_TEST)
+        del prediction_model
 
-    print('Started training neural network...')
-    prediction_model = tf.keras.models.Sequential()
-    prediction_model.add(tf.keras.layers.Flatten(input_shape=(len(X_TRAIN[0]),)))
-    prediction_model.add(tf.keras.layers.Dense(256, activation='relu'))
-    #prediction_model.add(tf.keras.layers.BatchNormalization())
-    prediction_model.add(tf.keras.layers.Dropout(0.5))
-    prediction_model.add(tf.keras.layers.Dense(128, activation='relu'))
-    prediction_model.add(tf.keras.layers.Dropout(0.5))
-    prediction_model.add(tf.keras.layers.Dense(1, activation='relu'))
-    prediction_model.summary()
+        ### CHOOSE LABEL ACCORDING TO FIRST OR SECOND PROBABILITY BEING HIGHER
+        y_pred = choosing_label(y_doubled)
 
-    prediction_model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-
-    prediction_model.fit(X_TRAIN, Y_LABELS, batch_size=32, epochs=25, verbose=1)
-
-    y_doubled = prediction_model.predict(X_TEST)
-
-### CHOOSE LABEL ACCORDING TO FIRST OR SECOND PROBABILITY BEING HIGHER
-y_pred = []
-for i in range(int(len(y_doubled)/2)):
-    if y_doubled[2*i] > y_doubled[2*i+1]:
-        y_pred.append(1)
-    else:
-        y_pred.append(0)
-
-### WRITING SOLUTION TO SUBMISSION .CSV-FILE
-M_submission_pd = pd.DataFrame(data=y_pred)
-M_submission_pd.to_csv(r'submission_' + str(considered_n_classes) + '_' + model_type + '.csv', index=False, header=False)
-#M_submission_pd.to_csv(r'old_submissions/submission_1.csv', index=False, header=False)
+        ### WRITING SOLUTION TO SUBMISSION .CSV-FILE
+        M_submission_pd = pd.DataFrame(data=y_pred)
+        #M_submission_pd.to_csv(r'submission_' + str(considered_n_classes) + '_' + str(considered_n_probabilities) + '.csv', index=False, header=False)
+        M_submission_pd.to_csv(r'old_submissions/submission_' + str(unseeded_submission_iterations) + '.csv', index=False, header=False)

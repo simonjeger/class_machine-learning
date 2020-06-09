@@ -1,4 +1,0 @@
-activation_image_prediction: False
-activation_train_test_data: True
-activation_model_training: False
-consideres_n_labels: 5
