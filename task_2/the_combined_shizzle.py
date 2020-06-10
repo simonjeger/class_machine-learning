@@ -10,6 +10,8 @@ from sklearn.linear_model import RidgeCV
 from sklearn import svm
 import method_NN as NN
 
+from scipy import stats
+
 #Hexerei for importing parameters from yaml file
 parser = argparse.ArgumentParser()
 parser.add_argument('yaml_file')
@@ -28,6 +30,22 @@ state_quick_calc = yaml_parameters['state_quick_calc']
 activation_NN_1 = yaml_parameters['activation_NN_1']
 activation_NN_2 = yaml_parameters['activation_NN_2']
 activation_NN_3 = yaml_parameters['activation_NN_3']
+
+### FOR CHOOSING THE RIGHT HYPERPARAMS
+hypertraining_iterations = 10
+activation_hypertuning = True
+if activation_hypertuning==True:
+    hyperarr_epochs = [25]                                                      #old sets: [1, 5, 10, 20, 30]
+    hyperarr_batchsize = [32, 64, 128]                                          #old sets: [20, 32, 32, 50, 75]
+    hyperarr_n_layers = [2, 3]                                                  #old sets: [1, 2, 3, 4]
+    hyperarr_start_density = [100, 200, 300]                                    #old sets: [100, 300, 500]
+    hyperarr_dropout = [0.1, 0.2, 0.3]                                          #old sets: [0.1, 0.3, 0.5]
+else:
+    hyperarr_epochs = [5]
+    hyperarr_batchsize = [32]
+    hyperarr_n_layers = [3]
+    hyperarr_start_density = [200]
+    hyperarr_dropout = [0.2]
 
 def read_in_data():
     train_labels = pd.read_csv('../data_2/train_labels.csv', delimiter=',', nrows=patients)
@@ -70,6 +88,42 @@ def count_values(data_set_train, data_set_test):
         X_count_test.append(ntest)
     return np.asarray(X_count_train), np.asarray(X_count_test)
 
+def slope(data_set, type):
+    X_gradient_train, X_gradient_test = [], []
+    result = []
+
+    if type == 'train':
+        N = patients
+    if type == 'test':
+        N = int(data_set.shape[0]/12)
+
+    for i in range(0, N):
+        gradient_vitals = []
+        X_Patient = data_set.iloc[(12*i):(12*(i+1)),:]
+        X_Patient.index = np.arange(0, 12)
+        X_Patient = np.array(X_Patient)                                      #set index from 0 to 11 in every X_Patient
+        X_Patient_result = [0] * (data_set.shape[1]-3)
+        for j in range(3, data_set.shape[1]):                             #leave out pid, Time and Age
+            X_vector = X_Patient[:,j]
+            is_not_nan = ~np.isnan(X_vector)
+            Y_vector = []
+            for k in range(0,len(X_vector)):
+                if is_not_nan[k]:
+                    Y_vector.append(k)
+            X_vector = X_vector[~np.isnan(X_vector)]
+            if X_vector.any():
+                if len(X_vector) > 1:
+                    slope, intercept, r_value, p_value, std_err = stats.linregress(X_vector,Y_vector)
+                    if np.isnan(slope):
+                        slope = 0
+                else:
+                    slope = 0
+            else:
+                slope = 0
+            X_Patient_result[j-3] = slope
+        result.append(X_Patient_result)
+    return result
+
 def gradient(data_set_train, data_set_test):
     X_gradient_train, X_gradient_test = [], []
     ### For data_set_train
@@ -78,7 +132,7 @@ def gradient(data_set_train, data_set_test):
         X_Patient = data_set_train.iloc[(12*i):(12*(i+1)),:]
         X_Patient.index = np.arange(0, 12)                                      #set index from 0 to 11 in every X_Patient
         first_elem = np.nan_to_num(np.asarray(X_Patient.apply(pd.Series.first_valid_index)))
-        last_elem = np.nan_to_num(np.asarray(X_Patient.apply(pd.Series.last_valid_index)))
+        last_elem = np.nan_to_num(np.asarray(X_Patient.apply(pd.Series.last__index)))
         for j in range(3, data_set_train.shape[1]):                             #leave out pid, Time and Age
             gradient_vitals.append(np.nan_to_num(np.array(X_Patient)[int(last_elem[j]), j] - np.array(X_Patient)[int(first_elem[j]), j]))
         X_gradient_train.append(gradient_vitals)
@@ -148,6 +202,10 @@ def selective_training(X_TRAIN, X_TEST, X_count_train, X_count_test, X_gradient_
         X_TRAIN_1 = np.c_[X_TRAIN_1, X_count_train[:,10], X_count_train[:,12], X_count_train[:,17], X_count_train[:,27], X_count_train[:,33], X_count_train[:,6], X_count_train[:,34], X_count_train[:,20], X_count_train[:,29], X_count_train[:,3]]
         #X_TRAIN_2 = np.c_[X_TRAIN_2, X_count_train[:,2:]]
         #X_TRAIN_2 = np.c_[X_TRAIN_2, X_count_train[:,2], X_count_train[:,6], X_count_train[:,7], X_count_train[:,11], X_count_train[:,13], X_count_train[:,21], X_count_train[:,32], X_count_train[:,36]]
+    if activation_gradient != 0:
+        X_TRAIN_1 = np.c_[X_TRAIN_1, X_gradient_train]
+        X_TRAIN_2 = np.c_[X_TRAIN_2, X_gradient_train]
+        X_TRAIN_3 = np.c_[X_TRAIN_3, X_gradient_train]
     #for test data
     X_TEST_1 = np.c_[X_TEST[:,10], X_TEST[:,12], X_TEST[:,17], X_TEST[:,27], X_TEST[:,33], X_TEST[:,6], X_TEST[:,34], X_TEST[:,20], X_TEST[:,29], X_TEST[:,3]]
     X_TEST_2 = X_TEST[:,2:]
@@ -157,6 +215,10 @@ def selective_training(X_TRAIN, X_TEST, X_count_train, X_count_test, X_gradient_
         X_TEST_1 = np.c_[X_TEST_1, X_count_test[:,10], X_count_test[:,12], X_count_test[:,17], X_count_test[:,27], X_count_test[:,33], X_count_test[:,6], X_count_test[:,34], X_count_test[:,20], X_count_test[:,29], X_count_test[:,3]]
         #X_TEST_2 = np.c_[X_TEST_2, X_count_test[:,2:]]
         #X_TEST_2 = np.c_[X_TEST_2, X_count_test[:,2], X_count_test[:,6], X_count_test[:,7], X_count_test[:,11], X_count_test[:,13], X_count_test[:,21], X_count_test[:,32], X_count_test[:,36]]
+    if activation_gradient != 0:
+        X_TEST_1 = np.c_[X_TEST_1, X_gradient_test]
+        X_TEST_2 = np.c_[X_TEST_2, X_gradient_test]
+        X_TEST_3 = np.c_[X_TEST_3, X_gradient_test]
 
     return np.asarray(X_TRAIN_1), np.asarray(X_TRAIN_2), np.asarray(X_TRAIN_3), np.asarray(X_TEST_1), np.asarray(X_TEST_2), np.asarray(X_TEST_3)
 
@@ -176,6 +238,10 @@ else:
 if activation_gradient == 1:
     print('Compute gradient matrix...')
     [X_gradient_train, X_gradient_test] = gradient(train_features, test_features)
+elif activation_gradient == 2:
+    print('Compute slope matrix...')
+    X_gradient_train = slope(train_features, 'train')
+    X_gradient_test = slope(test_features, 'test')
 else:
     X_gradient_train, X_gradient_test = np.asarray([]), np.asarray([])
 
@@ -201,7 +267,16 @@ print('Model data is being prepared...')
 print('---Started model training---')
 print('model_1:')
 if activation_NN_1 == True:
-    y_1 = NN.neural_network_1(X_TRAIN_1, Y_LABELS_1, X_TEST_1)
+    for i in range(hypertraining_iterations):
+        ### SETTING RANDOM HYPERPARAMETERS
+        hyperparam_epochs = hyperarr_epochs[np.random.randint(0,len(hyperarr_epochs))]
+        hyperparam_batchsize = hyperarr_batchsize[np.random.randint(0,len(hyperarr_batchsize))]
+        hyperparam_n_layers = hyperarr_n_layers[np.random.randint(0,len(hyperarr_n_layers))]
+        hyperparam_start_density = hyperarr_start_density[np.random.randint(0,len(hyperarr_start_density))]
+        hyperparam_dropout = hyperarr_dropout[np.random.randint(0,len(hyperarr_dropout))]
+
+        ### GENERATING NN
+        y_1 = NN.neural_network_1(X_TRAIN_1, Y_LABELS_1, X_TEST_1, hyperparam_epochs, hyperparam_batchsize, hyperparam_n_layer, hyperparam_start_density, hyperparam_dropout)
 else:
     model_1 = OneVsRestClassifier(svm.SVC(kernel='linear', probability=True))
     model_1.fit(X_TRAIN_1, Y_LABELS_1)

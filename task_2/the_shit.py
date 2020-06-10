@@ -38,6 +38,11 @@ def read_in():
 
     return X_train, X_test, df_train_labels, df_train_features, df_test_features
 
+def preprocessing_task_1(X):
+    df = X_mean.groupby( ['pid'] )
+    df = 
+    return X.notnull()*1
+
 def number_of_tests(X):
     X = X.drop(['pid'], axis=1)
     X = X.drop(['Age'], axis=1)
@@ -150,6 +155,9 @@ X_test = normalize_pandas(X_test)
 #print(number_of_tests(X_train))
 
 # remove_nan
+
+preprocessing_task_1(X_train)
+
 remove_nan(X_train, "patient_data_train_prep")
 remove_nan(X_test, "patient_data_test_prep")
 #-----------------------------------------------
