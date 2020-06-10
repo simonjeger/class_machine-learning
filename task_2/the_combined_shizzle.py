@@ -3,11 +3,21 @@ import yaml                                                                     
 import argparse
 import pandas as pd
 from sklearn.utils import shuffle
+import sklearn.metrics as metrics
 from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.linear_model import RidgeCV
 from sklearn import svm
+
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout, Flatten
+from tensorflow.keras.callbacks import Callback
+from tensorflow.keras.layers import BatchNormalization
+from tensorflow.keras.utils import normalize, to_categorical
+
 import method_NN as NN
 
 from scipy import stats
@@ -35,7 +45,7 @@ activation_NN_3 = yaml_parameters['activation_NN_3']
 hypertraining_iterations = 10
 activation_hypertuning = True
 if activation_hypertuning==True:
-    hyperarr_epochs = [25]                                                      #old sets: [1, 5, 10, 20, 30]
+    hyperarr_epochs = [10]                                                      #old sets: [1, 5, 10, 20, 30]
     hyperarr_batchsize = [32, 64, 128]                                          #old sets: [20, 32, 32, 50, 75]
     hyperarr_n_layers = [2, 3]                                                  #old sets: [1, 2, 3, 4]
     hyperarr_start_density = [100, 200, 300]                                    #old sets: [100, 300, 500]
@@ -222,6 +232,37 @@ def selective_training(X_TRAIN, X_TEST, X_count_train, X_count_test, X_gradient_
 
     return np.asarray(X_TRAIN_1), np.asarray(X_TRAIN_2), np.asarray(X_TRAIN_3), np.asarray(X_TEST_1), np.asarray(X_TEST_2), np.asarray(X_TEST_3)
 
+def evaluate(task, Y_LABELS_VALIDATION, y_validation):
+    if task == 1:
+        return metrics.roc_auc_score(Y_LABELS_VALIDATION, y_validation)
+    if task == 2:
+        return metrics.roc_auc_score(Y_LABELS_VALIDATION, y_validation)
+    if task == 3:
+        return 0.5 + 0.5 * np.maximum(0, metrics.r2_score(Y_LABELS_VALIDATION, y_validation))
+
+#def loss_func_2(y_actual, y_predicted):
+#    return metrics.roc_auc_score(np.asarray(y_actual), np.asarray(y_predicted))
+
+class Val_2(Callback):
+    def __init__(self, X, y):
+        self.X_val = X
+        self.y_val = y
+        self.best_val_2 = 0
+
+    def on_epoch_end(self, epoch, logs={}):
+        val_predict = np.round(self.model.predict(self.X_val).reshape(-1))
+        print(val_predict)
+        accuracy_2 = metrics.roc_auc_score(self.y_val, val_predict)
+        if accuracy_2 > self.best_val_2:            #if the value improves from one epoch to another, but still with the same set of hyper parameters
+            self.best_val_2 = accuracy_2
+            print('value improved')
+        else:
+            print('value kept the same')
+
+        if accuracy_2 > score_2[0]:                 #if the value is better than all we have found so far with any settings of hyper parameters
+            score_2[0] = accuracy_2
+            best_variables = [hyperparam_epochs, hyperparam_batchsize, hyperparam_n_layers, hyperparam_start_density, hyperparam_dropout]
+            print('new best score found:', best_variables)
 
 #--------------------------------MAIN-------------------------------------------
 ### Read in the whole data set
@@ -263,11 +304,15 @@ else:
 ### Model data preparing
 print('Model data is being prepared...')
 [X_TRAIN_1, X_TRAIN_2, X_TRAIN_3, X_TEST_1, X_TEST_2, X_TEST_3] = selective_training(X_TRAIN, X_TEST, X_count_train, X_count_test, X_gradient_train, X_gradient_test)
+X_TRAIN_1, X_TRAIN_1_VALIDATION, Y_LABELS_1, Y_LABELS_1_VALIDATION = train_test_split(X_TRAIN_1,Y_LABELS_1, test_size = 0.2)
+X_TRAIN_2, X_TRAIN_2_VALIDATION, Y_LABELS_2, Y_LABELS_2_VALIDATION = train_test_split(X_TRAIN_2,Y_LABELS_2, test_size = 0.2)
+X_TRAIN_3, X_TRAIN_3_VALIDATION, Y_LABELS_3, Y_LABELS_3_VALIDATION = train_test_split(X_TRAIN_3,Y_LABELS_3, test_size = 0.2)
 
 print('---Started model training---')
 print('model_1:')
 if activation_NN_1 == True:
-    for i in range(hypertraining_iterations):
+    tuning_params = []
+    for n in range(1):
         ### SETTING RANDOM HYPERPARAMETERS
         hyperparam_epochs = hyperarr_epochs[np.random.randint(0,len(hyperarr_epochs))]
         hyperparam_batchsize = hyperarr_batchsize[np.random.randint(0,len(hyperarr_batchsize))]
@@ -276,7 +321,35 @@ if activation_NN_1 == True:
         hyperparam_dropout = hyperarr_dropout[np.random.randint(0,len(hyperarr_dropout))]
 
         ### GENERATING NN
-        y_1 = NN.neural_network_1(X_TRAIN_1, Y_LABELS_1, X_TEST_1, hyperparam_epochs, hyperparam_batchsize, hyperparam_n_layer, hyperparam_start_density, hyperparam_dropout)
+        model_1 = tf.keras.models.Sequential()
+        model_1.add(tf.keras.layers.Flatten(input_shape=(len(X_TRAIN_1[0]),)))
+        for n_layers in range(hyperparam_n_layers):
+            model_1.add(tf.keras.layers.Dense(int(hyperparam_start_density/np.power(2,n_layers)), activation='sigmoid'))
+            model_1.add(tf.keras.layers.Dropout(hyperparam_dropout))
+            model_1.add(tf.keras.layers.BatchNormalization())
+        model_1.add(tf.keras.layers.Dense(len(Y_LABELS_1[0]), activation='sigmoid'))
+        model_1.summary()
+
+        model_1.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+        model_1.fit(X_TRAIN_1, Y_LABELS_1, batch_size=hyperparam_batchsize, epochs=hyperparam_epochs, verbose=1)
+        y_validation = model_1.predict(X_TRAIN_1_VALIDATION)
+        y_pred_test_1 = model_1.predict(X_TEST_1)
+        del model_1
+
+        accuracy = evaluate(1, Y_LABELS_1_VALIDATION, y_validation)
+        tuning_params.append([hyperparam_epochs, hyperparam_batchsize, hyperparam_n_layers, hyperparam_start_density, hyperparam_dropout, accuracy])
+        print(tuning_params)
+
+        ### WRITING SOLUTION TO SUBMISSION .CSV-FILE
+        M_submission_pd = pd.DataFrame(data=y_pred_test_1)
+        M_submission_pd.to_csv(r'submission_subtask_1/submission_' + str(n) + '.csv', index=False, header=False)
+
+    ### WRITING PARAMETERS TO FILE 'hyperparam_settings.csv'
+    M_hyperparam_settings = pd.DataFrame(data=tuning_params, columns=["epochs", "batch_size", "n_layers_NN", "start_density", "dropout", "accuracy"])
+    print(M_hyperparam_settings)
+    M_hyperparam_settings.to_csv(r'hyperparam_settings_1.csv')
+
 else:
     model_1 = OneVsRestClassifier(svm.SVC(kernel='linear', probability=True))
     model_1.fit(X_TRAIN_1, Y_LABELS_1)
@@ -287,7 +360,45 @@ else:
 
 print('model_2:')
 if activation_NN_2 == True:
-    y_2 = NN.neural_network_2(X_TRAIN_2, Y_LABELS_2, X_TEST_2)
+    tuning_params = []
+    score_2 = [0]
+    for n in range(hypertraining_iterations):
+        ### SETTING RANDOM HYPERPARAMETERS
+        hyperparam_epochs = hyperarr_epochs[np.random.randint(0,len(hyperarr_epochs))]
+        hyperparam_batchsize = hyperarr_batchsize[np.random.randint(0,len(hyperarr_batchsize))]
+        hyperparam_n_layers = hyperarr_n_layers[np.random.randint(0,len(hyperarr_n_layers))]
+        hyperparam_start_density = hyperarr_start_density[np.random.randint(0,len(hyperarr_start_density))]
+        hyperparam_dropout = hyperarr_dropout[np.random.randint(0,len(hyperarr_dropout))]
+
+        ### GENERATING NN
+        model_2 = tf.keras.models.Sequential()
+        model_2.add(tf.keras.layers.Flatten(input_shape=(len(X_TRAIN_2[0]),)))
+        for n_layers in range(hyperparam_n_layers):
+            model_2.add(tf.keras.layers.Dense(int(hyperparam_start_density/np.power(2,n_layers)), activation='sigmoid'))
+            model_2.add(tf.keras.layers.Dropout(hyperparam_dropout))
+            model_2.add(tf.keras.layers.BatchNormalization())
+        model_2.add(tf.keras.layers.Dense(1, activation='sigmoid'))
+
+        model_2.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+
+        loss_metric_2 = Val_2(X_TRAIN_2_VALIDATION, Y_LABELS_2_VALIDATION)
+
+        model_2.fit(X_TRAIN_2, Y_LABELS_2, batch_size=hyperparam_batchsize, epochs=hyperparam_epochs, callbacks=[loss_metric_2], verbose=1)
+        y_validation = model_2.predict(X_TRAIN_2_VALIDATION)
+        y_pred_test_2 = model_2.predict(X_TEST_2)
+
+        accuracy = evaluate(2, Y_LABELS_2_VALIDATION, y_validation)
+        tuning_params.append([hyperparam_epochs, hyperparam_batchsize, hyperparam_n_layers, hyperparam_start_density, hyperparam_dropout, accuracy])
+        print(tuning_params)
+
+        ### WRITING SOLUTION TO SUBMISSION .CSV-FILE
+        M_submission_pd = pd.DataFrame(data=y_pred_test_2)
+        M_submission_pd.to_csv(r'submission_subtask_2/submission_' + str(n) + '.csv', index=False, header=False)
+
+    ### WRITING PARAMETERS TO FILE 'hyperparam_settings.csv'
+    M_hyperparam_settings = pd.DataFrame(data=tuning_params, columns=["epochs", "batch_size", "n_layers_NN", "start_density", "dropout", "accuracy"])
+    print(M_hyperparam_settings)
+    M_hyperparam_settings.to_csv(r'hyperparam_settings_2.csv')
 else:
     model_2 = svm.SVC(kernel='linear', probability=True)
     model_2.fit(X_TRAIN_2, Y_LABELS_2)
@@ -306,7 +417,7 @@ else:
     y_3 = model_3.predict(X_TEST_3)
 
 ### Writing to .zip and .csv files
-M_submission = np.c_[pid_test, y_1, y_2, y_3]
+M_submission = np.c_[pid_test, y_pred_test_1, y_pred_test_2, y_3]
 M_submission_pd = pd.DataFrame(data=M_submission, columns=["pid","LABEL_BaseExcess","LABEL_Fibrinogen","LABEL_AST","LABEL_Alkalinephos","LABEL_Bilirubin_total","LABEL_Lactate","LABEL_TroponinI","LABEL_SaO2","LABEL_Bilirubin_direct","LABEL_EtCO2","LABEL_Sepsis","LABEL_RRate","LABEL_ABPm","LABEL_SpO2","LABEL_Heartrate"])
 
 M_submission_pd.to_csv(r'sample_' + str(patients) + '_' + str(activation_ntest) + '_' + str(activation_gradient) + '_' + predicting_method + '.csv', index=False, float_format='%.3f')

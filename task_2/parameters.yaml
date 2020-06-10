@@ -4,6 +4,6 @@ activation_gradient: 2
 predicting_method: 'sigmoid'
  processing_method: 'deterministic'
 state_quick_calc: True
-activation_NN_1: False
-activation_NN_2: False
+activation_NN_1: True
+activation_NN_2: True
 activation_NN_3: False

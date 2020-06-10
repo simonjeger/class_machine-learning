@@ -1,0 +1,2 @@
+,epochs,batch_size,n_layers_NN,start_density,dropout,accuracy
+0,25,64,3,100,0.1,0.7480121320610518
